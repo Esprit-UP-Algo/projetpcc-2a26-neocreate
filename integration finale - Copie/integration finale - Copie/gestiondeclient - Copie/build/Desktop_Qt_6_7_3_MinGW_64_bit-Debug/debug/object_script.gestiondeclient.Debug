@@ -1,0 +1,10 @@
+debug/Login.o
+debug/connection.o
+debug/gererstaff.o
+debug/main.o
+debug/mainwindow.o
+debug/staff.o
+debug/qrc_resource.o
+debug/moc_Login.o
+debug/moc_mainwindow.o
+debug/moc_staff.o
