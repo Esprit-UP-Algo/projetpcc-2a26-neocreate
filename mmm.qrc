@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/new/prefix1">
+        <file>WhatsApp_Image_2025-10-03_at_09.53.04__1_-removebg-preview-removebg-preview.png</file>
+        <file>back.png</file>
+    </qresource>
+</RCC>
