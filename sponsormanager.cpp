@@ -901,3 +901,27 @@ void SponsorManager::creerEtAfficherToast(const QMap<QString, QString>& notif)
     // Disparition après 5 secondes
     QTimer::singleShot(5000, this, &SponsorManager::masquerToastActuel);
 }
+// =====================================================
+// FONCTION MANQUANTE - À AJOUTER À LA FIN
+// =====================================================
+
+void SponsorManager::masquerToastActuel()
+{
+    if (!m_currentToast) return;
+
+    // Animation de disparition vers la droite
+    QPropertyAnimation *animation = new QPropertyAnimation(m_currentToast, "pos");
+    animation->setDuration(500);
+    animation->setStartValue(m_currentToast->pos());
+
+    QPoint parentBottomRight = m_parentWidget->mapToGlobal(QPoint(m_parentWidget->width(), m_parentWidget->height()));
+    animation->setEndValue(QPoint(parentBottomRight.x() + 100, m_currentToast->pos().y()));
+    animation->setEasingCurve(QEasingCurve::InCubic);
+
+    connect(animation, &QPropertyAnimation::finished, m_currentToast, &QWidget::deleteLater);
+    connect(animation, &QPropertyAnimation::finished, this, [this]() {
+        m_currentToast = nullptr;
+    });
+
+    animation->start();
+}

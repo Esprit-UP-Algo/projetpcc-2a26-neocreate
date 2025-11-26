@@ -46,6 +46,9 @@ MainWindow::MainWindow(QWidget *parent)
     , currentSponsorId("")  // Initialiser ici
 {
     ui->setupUi(this);
+    this->showFullScreen();
+    this->showMaximized();
+
     qDebug() << "=== DÉBUT INITIALISATION ===";
     // Dans ton MainWindow ou Dialog principal
 
