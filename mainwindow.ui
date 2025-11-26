@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1485</width>
-    <height>731</height>
+    <width>1580</width>
+    <height>827</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,7 +20,7 @@
       <x>10</x>
       <y>0</y>
       <width>201</width>
-      <height>711</height>
+      <height>961</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -302,7 +302,7 @@ QToolButton:hover {
      </rect>
     </property>
     <property name="currentIndex">
-     <number>5</number>
+     <number>4</number>
     </property>
     <widget class="QWidget" name="page">
      <widget class="QTabWidget" name="tabWidget">
@@ -4130,9 +4130,9 @@ QToolButton:hover {
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>0</y>
+        <y>-10</y>
         <width>1261</width>
-        <height>671</height>
+        <height>961</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -4186,8 +4186,8 @@ QTabWidget &gt; QWidget {
          <rect>
           <x>10</x>
           <y>0</y>
-          <width>211</width>
-          <height>611</height>
+          <width>221</width>
+          <height>681</height>
          </rect>
         </property>
         <property name="styleSheet">
@@ -4358,13 +4358,11 @@ background:transparent;</string>
           </rect>
          </property>
          <property name="styleSheet">
-          <string notr="true">background-color: rgb(255, 255, 255);</string>
+          <string notr="true">QComboBox {
+    color: black;
+    background-color: white;
+}</string>
          </property>
-         <item>
-          <property name="text">
-           <string>Argent</string>
-          </property>
-         </item>
          <item>
           <property name="text">
            <string>Materiel</string>
@@ -4408,7 +4406,10 @@ background:transparent;</string>
           </rect>
          </property>
          <property name="styleSheet">
-          <string notr="true">background-color: rgb(255, 255, 255);</string>
+          <string notr="true">QComboBox {
+    color: black;
+  
+}</string>
          </property>
         </widget>
         <widget class="QDateEdit" name="date_fin">
@@ -4421,7 +4422,10 @@ background:transparent;</string>
           </rect>
          </property>
          <property name="styleSheet">
-          <string notr="true">background-color: rgb(255, 255, 255);</string>
+          <string notr="true">QComboBox {
+    color: black;
+    background-color: white;
+}</string>
          </property>
         </widget>
         <widget class="QLabel" name="label_15">
@@ -4451,7 +4455,10 @@ background:transparent;</string>
           </rect>
          </property>
          <property name="styleSheet">
-          <string notr="true">background-color: rgb(255, 255, 255);</string>
+          <string notr="true">QLabel {
+    color: black;
+    background-color: white;
+}</string>
          </property>
         </widget>
         <widget class="QToolButton" name="AjouterSponsor">
@@ -4480,7 +4487,10 @@ background:transparent;</string>
           </rect>
          </property>
          <property name="styleSheet">
-          <string notr="true">background-color: rgb(255, 255, 255);</string>
+          <string notr="true">QLabel {
+    color: black;
+    background-color: white;
+}</string>
          </property>
         </widget>
         <widget class="QLineEdit" name="lineEdit_nom">
@@ -4493,7 +4503,10 @@ background:transparent;</string>
           </rect>
          </property>
          <property name="styleSheet">
-          <string notr="true">background-color: rgb(255, 255, 255);</string>
+          <string notr="true">QLabel {
+    color: black;
+    background-color: white;
+}</string>
          </property>
         </widget>
         <widget class="QToolButton" name="AnnulerSponsor">
@@ -4523,7 +4536,10 @@ background:transparent;</string>
          </rect>
         </property>
         <property name="styleSheet">
-         <string notr="true">background-color: rgb(255, 255, 255);</string>
+         <string notr="true">QLabel {
+    color: black;
+    background-color: white;
+}</string>
         </property>
        </widget>
        <widget class="QLabel" name="label_17">
@@ -4539,7 +4555,7 @@ background:transparent;</string>
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:11pt; font-weight:700; color:#000000;&quot;&gt;Trier par:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
        </widget>
-       <widget class="QComboBox" name="comboBox_5">
+       <widget class="QComboBox" name="comboBox_tri">
         <property name="geometry">
          <rect>
           <x>910</x>
@@ -4549,11 +4565,20 @@ background:transparent;</string>
          </rect>
         </property>
         <property name="styleSheet">
-         <string notr="true">background-color: rgb(255, 255, 255);</string>
+         <string notr="true">QComboBox {
+    color: black;
+    background-color: white;
+}
+</string>
         </property>
         <item>
          <property name="text">
-          <string>Contrubtion</string>
+          <string>aucune</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>nom</string>
          </property>
         </item>
        </widget>
@@ -4563,7 +4588,7 @@ background:transparent;</string>
           <x>1130</x>
           <y>280</y>
           <width>71</width>
-          <height>51</height>
+          <height>61</height>
          </rect>
         </property>
         <property name="styleSheet">
@@ -4606,8 +4631,8 @@ QToolButton:hover {
        <widget class="QToolButton" name="SupprimerSponsor">
         <property name="geometry">
          <rect>
-          <x>1120</x>
-          <y>170</y>
+          <x>1130</x>
+          <y>180</y>
           <width>71</width>
           <height>61</height>
          </rect>
@@ -4689,68 +4714,6 @@ QToolButton:hover {
          <string>Afficher</string>
         </property>
        </widget>
-       <widget class="QGroupBox" name="groupBox_7">
-        <property name="geometry">
-         <rect>
-          <x>920</x>
-          <y>490</y>
-          <width>251</width>
-          <height>111</height>
-         </rect>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QGroupBox {
-    border: 2px solid #F8C8DC;
-    border-radius: 15px;
-    margin-top: 20px;
-    background: qlineargradient(spread:pad,
-                                x1:0, y1:0,
-                                x2:1, y2:0,
-                                stop:0 #F8C8DC,
-                                stop:1 #BDC3C7);
-    color: white;
-    font-weight: bold;
-    padding: 15px;
-}
-
-QGroupBox::title {
-    subcontrol-origin: margin;
-    subcontrol-position: top centre; 
-    padding: 10px 20px; 
-    border-radius: 15px; 
-    background: qlineargradient(spread:pad,
-                                x1:0, y1:0,
-                                x2:1, y2:0,
-                                stop:0 #F8C8DC,
-                                stop:1 #BDC3C7);
-    color: black; 
-    font-size: 20px; 
-    font-weight: bold;
-}</string>
-        </property>
-        <property name="title">
-         <string>NOTIFICATIONS ET ALERTE</string>
-        </property>
-        <widget class="QLabel" name="label_5">
-         <property name="geometry">
-          <rect>
-           <x>250</x>
-           <y>0</y>
-           <width>71</width>
-           <height>61</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="pixmap">
-          <pixmap>../../—Pngtree—alert notification bell 3d icon_8631570.png</pixmap>
-         </property>
-         <property name="scaledContents">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </widget>
        <widget class="QWidget" name="widget_2" native="true">
         <property name="geometry">
          <rect>
@@ -4808,6 +4771,22 @@ color: rgb(0, 0, 0);</string>
          </column>
         </widget>
        </widget>
+       <widget class="QToolButton" name="exportationpdf">
+        <property name="geometry">
+         <rect>
+          <x>890</x>
+          <y>480</y>
+          <width>171</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QToolButton { border: none; border-radius: 20px; color: white; padding: 1px; background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #9B59B6, stop:1 #BDC3C7); } QToolButton:hover { background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #BDC3C7, stop:1 #F8C8DC);}</string>
+        </property>
+        <property name="text">
+         <string>Exportation PDf</string>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
@@ -4816,10 +4795,10 @@ color: rgb(0, 0, 0);</string>
        <widget class="QGroupBox" name="groupBox_8">
         <property name="geometry">
          <rect>
-          <x>0</x>
+          <x>20</x>
           <y>10</y>
-          <width>771</width>
-          <height>411</height>
+          <width>1021</width>
+          <height>631</height>
          </rect>
         </property>
         <property name="styleSheet">
@@ -4912,51 +4891,13 @@ QGroupBox::title {
         <property name="title">
          <string>Qtastiques de sponsors</string>
         </property>
-        <widget class="QLabel" name="label_3">
-         <property name="geometry">
-          <rect>
-           <x>390</x>
-           <y>80</y>
-           <width>321</width>
-           <height>271</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="pixmap">
-          <pixmap>../../Gemini_Generated_Image_7p40tj7p40tj7p40.png</pixmap>
-         </property>
-         <property name="scaledContents">
-          <bool>true</bool>
-         </property>
-        </widget>
-        <widget class="QLabel" name="label_2">
-         <property name="geometry">
-          <rect>
-           <x>50</x>
-           <y>80</y>
-           <width>291</width>
-           <height>271</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="pixmap">
-          <pixmap>../../Gemini_Generated_Image_7immvh7immvh7imm.png</pixmap>
-         </property>
-         <property name="scaledContents">
-          <bool>true</bool>
-         </property>
-        </widget>
        </widget>
        <widget class="QGroupBox" name="groupBox_9">
         <property name="geometry">
          <rect>
-          <x>790</x>
-          <y>110</y>
-          <width>191</width>
+          <x>1070</x>
+          <y>170</y>
+          <width>171</width>
           <height>271</height>
          </rect>
         </property>
@@ -4993,12 +4934,12 @@ QGroupBox::title {
         <property name="title">
          <string>Fonctionnalités </string>
         </property>
-        <widget class="QToolButton" name="toolButton_16">
+        <widget class="QToolButton" name="btnIA">
          <property name="geometry">
           <rect>
-           <x>50</x>
-           <y>150</y>
-           <width>101</width>
+           <x>10</x>
+           <y>60</y>
+           <width>141</width>
            <height>51</height>
           </rect>
          </property>
@@ -5006,25 +4947,25 @@ QGroupBox::title {
           <string notr="true">QToolButton { border: none; border-radius: 20px; color: white; padding: 1px; background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #9B59B6, stop:1 #BDC3C7); } QToolButton:hover { background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #BDC3C7, stop:1 #F8C8DC);}</string>
          </property>
          <property name="text">
-          <string>IA recomendation</string>
+          <string>Recomendation ia</string>
          </property>
         </widget>
-        <widget class="QToolButton" name="toolButton_18">
-         <property name="geometry">
-          <rect>
-           <x>50</x>
-           <y>70</y>
-           <width>101</width>
-           <height>51</height>
-          </rect>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">QToolButton { border: none; border-radius: 20px; color: white; padding: 1px; background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #9B59B6, stop:1 #BDC3C7); } QToolButton:hover { background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #BDC3C7, stop:1 #F8C8DC);}</string>
-         </property>
-         <property name="text">
-          <string>Exportation pdf</string>
-         </property>
-        </widget>
+       </widget>
+       <widget class="QToolButton" name="btn_actualiser">
+        <property name="geometry">
+         <rect>
+          <x>1060</x>
+          <y>500</y>
+          <width>171</width>
+          <height>61</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QToolButton { border: none; border-radius: 20px; color: white; padding: 1px; background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #9B59B6, stop:1 #BDC3C7); } QToolButton:hover { background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #BDC3C7, stop:1 #F8C8DC);}</string>
+        </property>
+        <property name="text">
+         <string>refraichement </string>
+        </property>
        </widget>
       </widget>
      </widget>

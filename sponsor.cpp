@@ -261,3 +261,49 @@ bool Sponsor::rechercherParId(QString id, QString& nom, QString& contribution,
     qDebug() << "[Sponsor::rechercherParId] Aucun sponsor trouvé avec ID:" << id;
     return false;
 }
+// ================= TRI PAR NOM =================
+void Sponsor::trierParNom(QTableWidget* tableWidget)
+{
+    if (!tableWidget) return;
+
+    qDebug() << "🔄 Tri par ordre alphabétique des noms...";
+
+    // Créer une liste pour stocker les données triées
+    QList<QStringList> donnees;
+
+    // Récupérer toutes les données du tableau
+    int rowCount = tableWidget->rowCount();
+    int colCount = tableWidget->columnCount();
+
+    for (int row = 0; row < rowCount; ++row) {
+        QStringList ligne;
+        for (int col = 0; col < colCount; ++col) {
+            QTableWidgetItem* item = tableWidget->item(row, col);
+            ligne << (item ? item->text() : "");
+        }
+        donnees.append(ligne);
+    }
+
+    // Trier par nom (colonne 1)
+    std::sort(donnees.begin(), donnees.end(), [](const QStringList &a, const QStringList &b) {
+        if (a.size() > 1 && b.size() > 1) {
+            return a[1].toLower() < b[1].toLower(); // Tri case-insensitive
+        }
+        return false;
+    });
+
+    // Vider et remplir le tableau avec les données triées
+    tableWidget->setRowCount(0);
+
+    for (int row = 0; row < donnees.size(); ++row) {
+        tableWidget->insertRow(row);
+        for (int col = 0; col < donnees[row].size(); ++col) {
+            QTableWidgetItem* item = new QTableWidgetItem(donnees[row][col]);
+            item->setTextAlignment(Qt::AlignCenter);
+            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+            tableWidget->setItem(row, col, item);
+        }
+    }
+
+    qDebug() << "✅ Tableau trié par ordre alphabétique des noms";
+}

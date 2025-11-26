@@ -44,7 +44,7 @@ public:
     bool ajouter();
     bool modifier();
     bool supprimer(QString id);
-
+    static void trierParNom(QTableWidget* tableWidget);
     // Affichage - COMME PROJET
     static void afficherDansTableau(QTableWidget* tableWidget);
 

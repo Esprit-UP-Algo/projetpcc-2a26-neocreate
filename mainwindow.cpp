@@ -32,69 +32,157 @@
 #include <QApplication>
 #include "sponsor.h"
 #include "gestioncreateur.h"
+#include <QToolBar>
+#include <QToolButton>
+#include <QLabel>
+#include <QTimer>
+#include "chatwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , staff(nullptr)
+    , sponsorManager(nullptr)
+    , currentSponsorId("")  // Initialiser ici
 {
     ui->setupUi(this);
-qDebug() << "=== DÉBUT INITIALISATION ===";
-    // Créer l'instance Staff après ui->setupUi()
-    staff = new Staff();
+    qDebug() << "=== DÉBUT INITIALISATION ===";
+    // Dans ton MainWindow ou Dialog principal
 
-    // Initialiser le staff avec les widgets UI
-    staff->initS(ui->lineEditid, ui->lineEditNom, ui->lineEditPrenom, ui->comboBoxP,
-                 ui->lineEditTel, ui->lineEditMail, ui->lineEditMot,
-                 ui->radioButton1, ui->radioButton2, ui->radioButton3);
+    // ========== INITIALISATION STAFF ==========
+    staff = new Staff();
+    staff->initS(ui->lineEditid, ui->lineEditNom, ui->lineEditPrenom,
+                 ui->comboBoxP, ui->lineEditTel, ui->lineEditMail,
+                 ui->lineEditMot, ui->radioButton1, ui->radioButton2, ui->radioButton3);
 
     staff->initTab(ui->tabl);
-    // 3. ✅ CORRECTION : Utiliser -> pour initRechercheID
+
     qDebug() << "=== INITIALISATION RECHERCHE ===";
     qDebug() << "lineEditD pointer:" << ui->lineEditD;
     qDebug() << "toolButtonR pointer:" << ui->toolButtonR;
-
-    staff->initRechercheID(ui->lineEditD, ui->toolButtonR);  // ✅ CHANGER . en ->
-
+    staff->initRechercheID(ui->lineEditD, ui->toolButtonR);
     qDebug() << "=== INITIALISATION TERMINÉE ===";
+
     staff->initTrier(ui->comboBox);
-
-staff->refTab();
+    staff->refTab();
     staff->initAfficherTout(ui->toolButtonAff);
-
     qDebug() << "Bouton afficher tout initialisé";
-    // Connecter les boutons
+
+    // ========== INITIALISATION SPONSOR MANAGER ==========
+    sponsorManager = new SponsorManager(this);  // UNE SEULE fois
+
+    // ========== CONNECTIONS STAFF ==========
     connect(ui->toolButtonAjouter, &QToolButton::clicked, staff, &Staff::ConfS);
     connect(ui->toolButtonMod, &QToolButton::clicked, staff, &Staff::modifS);
     connect(ui->toolButtonSupp, &QToolButton::clicked, staff, &Staff::suppS);
     connect(ui->toolButtonAnnuler, &QToolButton::clicked, staff, &Staff::reinitS);
     connect(ui->toolButton_24, &QToolButton::clicked, staff, &Staff::expoS);
+
+    // ========== CONNECTIONS NAVIGATION ==========
     connect(ui->btn_staff,    &QToolButton::clicked, this, &MainWindow::showStaff);
     connect(ui->btn_client,   &QToolButton::clicked, this, &MainWindow::showClient);
     connect(ui->btn_materiel, &QToolButton::clicked, this, &MainWindow::showMateriel);
     connect(ui->btn_projet,   &QToolButton::clicked, this, &MainWindow::showProjet);
     connect(ui->btn_sponsor,  &QToolButton::clicked, this, &MainWindow::showSponsor);
     connect(ui->btn_createur, &QToolButton::clicked, this, &MainWindow::showCreateur);
-    connect(ui->btn_createur, &QToolButton::clicked, this, &MainWindow::showCreateur);
+    // SUPPRIMER la connexion dupliquée pour btn_createur
 
-    // ========== AJOUTER ICI ==========
-    // Configuration tableau Sponsor
+    // ========== CONNECTIONS SPONSOR ==========
+    connect(ui->AjouterSponsor, &QPushButton::clicked, this, &MainWindow::on_AjouterSponsor_clicked);
+    connect(ui->exportationpdf, &QPushButton::clicked, this, [this]() {
+        SponsorManager::executerExportPDF(ui->tableWidget_2, this);
+    });
+    connect(ui->btn_actualiser, &QPushButton::clicked, this, [this]() {
+        SponsorManager::afficherDashboardKPI(ui->groupBox_8);
+    });
+
+    // ========== CONFIGURATION TABLEAU SPONSOR ==========
     ui->tableWidget_2->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->tableWidget_2->setSelectionMode(QAbstractItemView::SingleSelection);
+    connect(ui->tableWidget_2, &QTableWidget::cellClicked, this, &MainWindow::on_tableWidget_2_cellClicked);
 
-    // Connexion clic tableau Sponsor
-    connect(ui->tableWidget_2, &QTableWidget::cellClicked,
-            this, &MainWindow::on_tableWidget_2_cellClicked);
+    // Configuration combobox contribution
+    ui->combobox_contribution->addItems({"Services", "Matériels", "Autre"});
 
-    // Remplir contribution
-    ui->combobox_contribution->addItems({"500","1000","1500"});
+    // ========== SYSTÈME DE NOTIFICATION ==========
+    QToolButton *btnNotification = new QToolButton(this);
+    btnNotification->setText("🔔 Notifications");
+    btnNotification->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    btnNotification->setStyleSheet(
+        "QToolButton { "
+        "font-size: 14px; background: #3498db; color: white; border: none; "
+        "padding: 8px 15px; border-radius: 6px; margin: 5px; "
+        "font-weight: bold; "
+        "}"
+        "QToolButton:hover { background: #2980b9; }"
+        "QToolButton:pressed { background: #21618c; }"
+        );
 
-    // Initialisation
-    currentSponsorId = "";
-    // ========== FIN AJOUT ==========
+    // Badge de notification
+    QLabel *badge = new QLabel("0", btnNotification);
+    badge->setStyleSheet(
+        "QLabel { "
+        "background: #e74c3c; color: white; font-size: 10px; font-weight: bold; "
+        "border-radius: 8px; padding: 2px 6px; min-width: 18px; min-height: 18px; "
+        "border: 2px solid white; "
+        "}"
+        );
+    badge->setAlignment(Qt::AlignCenter);
+    badge->move(btnNotification->width() - 25, 5); // Position dans le bouton
+    badge->setVisible(false);
+
+    connect(btnNotification, &QToolButton::clicked, this, [this]() {
+        SponsorManager::afficherFenetreNotifications(this);
+    });
+
+    // Barre d'outils notification en HAUT À DROITE
+    QToolBar *notificationBar = new QToolBar("Notifications", this);
+    notificationBar->setMovable(false);
+    notificationBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    addToolBar(Qt::TopToolBarArea, notificationBar);
+
+    // ⭐⭐ UN SEUL SPACER ⭐⭐
+    QWidget *spacer = new QWidget();
+    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    notificationBar->addWidget(spacer);
+
+    notificationBar->addWidget(btnNotification);
+
+    // Timer pour rafraîchissement notifications
+    QTimer *timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, [badge, btnNotification]() {
+        int count = SponsorManager::getNombreNotifications();
+        badge->setText(QString::number(count));
+        badge->setVisible(count > 0);
+
+        // Recalculer la position du badge si la taille du bouton change
+        badge->move(btnNotification->width() - 25, 5);
+    });
+    timer->start(60000); // 1 minute
+
+    // Premier rafraîchissement
+    int count = SponsorManager::getNombreNotifications();
+    badge->setText(QString::number(count));
+    badge->setVisible(count > 0);
+    // ========== INITIALISATION FINALE ==========
+    // ========== INITIALISATION FINALE ==========
     GestionCreateur *gestionCreateur = new GestionCreateur(ui, this);
-}  // ← Ceci est la fin du constructeur
+    SponsorManager::afficherDashboardKPI(ui->groupBox_8);
 
+    qDebug() << "=== INITIALISATION COMPLÈTE ===";
+
+    // ========== NOTIFICATIONS AUTOMATIQUES ==========
+    // Démarrer les notifications APRÈS que la fenêtre soit affichée
+    QTimer::singleShot(3000, this, [this]() {
+        if (sponsorManager) {
+            // Notification de bienvenue
+            sponsorManager->showNotification("Application lancée", "Bienvenue dans la gestion des sponsors !");
+
+            // Démarrer les notifications toast automatiques
+            sponsorManager->demarrerNotificationsAutomatiques(this);
+        }
+    });
+}
 // AJOUTER - Appelle materiel.ajouter()
             void MainWindow::on_ajouter_clicked()
 {
@@ -990,10 +1078,26 @@ void MainWindow::on_SupprimerSponsor_clicked()
 }
 
 // ----------------- AFFICHER - COMME PROJET -----------------
+
 void MainWindow::on_AfficherSponsor_clicked()
 {
-    // APPEL STATIC
+    // DEBUG
+    if (ui->comboBox_tri) {
+        qDebug() << "🔍 ComboBox tri - Texte actuel:" << ui->comboBox_tri->currentText();
+    }
+
+    // ACTION 1 : AFFICHER LE TABLEAU
     Sponsor::afficherDansTableau(ui->tableWidget_2);
+
+    // ACTION 2 : APPLIQUER LE TRI - COMPARAISON SANS CASSE
+    if (ui->comboBox_tri && ui->comboBox_tri->currentText().toLower() == "nom") {
+        ui->tableWidget_2->setSortingEnabled(true);
+        ui->tableWidget_2->sortByColumn(1, Qt::AscendingOrder);
+        ui->tableWidget_2->setSortingEnabled(false);
+        qDebug() << "✅ Tableau affiché ET trié par nom";
+    } else {
+        qDebug() << "❌ Tri NON appliqué";
+    }
 }
 
 // ----------------- ANNULER - COMME PROJET -----------------
@@ -1132,8 +1236,18 @@ void MainWindow::on_toolButton_53_clicked()
 {
     setProjetFormMode(false);
 }
-
-
+void MainWindow::on_btnIA_clicked()
+{
+    ChatWindow *chat = new ChatWindow(this);
+    chat->show();
+}
+void MainWindow::lancerNotificationDemarrage()
+{
+    if (sponsorManager) {
+        sponsorManager->showNotification("Connexion réussie ✓",
+                                         "Bienvenue dans la gestion des sponsors !");
+    }
+}
 
 MainWindow::~MainWindow()
 {
@@ -1146,3 +1260,4 @@ void MainWindow::showMateriel() { ui->stackedWidget->setCurrentIndex(2); }
 void MainWindow::showProjet()   { ui->stackedWidget->setCurrentIndex(3); }
 void MainWindow::showSponsor()  { ui->stackedWidget->setCurrentIndex(4); }
 void MainWindow::showCreateur() { ui->stackedWidget->setCurrentIndex(5); }
+// ========== MÉTHODE EXPORT PDF ==========

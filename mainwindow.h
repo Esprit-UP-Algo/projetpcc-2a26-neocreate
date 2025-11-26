@@ -7,7 +7,12 @@
 #include "projet.h"
 #include "staff.h"
 #include "gestioncreateur.h"
-// Déclaration anticipée
+#include "sponsormanager.h"
+
+
+
+
+  // ✅ Exactement le nom du bouton
 class Staff;
 
 namespace Ui {
@@ -72,6 +77,9 @@ private slots:
     void on_AnnulerSponsor_clicked();
     void on_RechercherSponsor_clicked();
     void on_tableWidget_2_cellClicked(int row, int column);
+    void on_btnIA_clicked();
+    void lancerNotificationDemarrage();
+
 
 
 private:
@@ -83,6 +91,7 @@ private:
     bool m_clientTableInit = false;
     bool m_clientEditMode  = false;
     bool m_projetEditMode  = false;
+    SponsorManager *sponsorManager;
 
 
     Ui::MainWindow *ui;

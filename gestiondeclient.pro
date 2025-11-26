@@ -1,6 +1,7 @@
 QT += core gui sql printsupport widgets
 QT += printsupport
-
+QT += core network widgets
+QT += charts
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17
@@ -11,26 +12,34 @@ CONFIG += c++17
 
 SOURCES += \
     Login.cpp \
+    arduino.cpp \
+    chatwindow.cpp \
     client.cpp \
     connection.cpp \
+    geminimanager.cpp \
     gestioncreateur.cpp \
     main.cpp \
     mainwindow.cpp \
     materiel.cpp \
     projet.cpp \
     sponsor.cpp \
+    sponsormanager.cpp \
     staff.cpp \
     staffsql.cpp
 
 HEADERS += \
     Login.h \
+    arduino.h \
+    chatwindow.h \
     client.h \
     connection.h \
+    geminimanager.h \
     gestioncreateur.h \
     mainwindow.h \
     materiel.h \
     projet.h \
     sponsor.h \
+    sponsormanager.h \
     staff.h \
     staffsql.h
 
