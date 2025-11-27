@@ -4,9 +4,6 @@
 #include <QObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonArray>
 
 class GeminiManager : public QObject
 {

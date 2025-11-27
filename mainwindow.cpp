@@ -37,7 +37,7 @@
 #include <QLabel>
 #include <QTimer>
 #include "chatwindow.h"
-
+#include "sponsormanager.h"
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -144,7 +144,7 @@ MainWindow::MainWindow(QWidget *parent)
     badge->setVisible(false);
 
     connect(btnNotification, &QToolButton::clicked, this, [this]() {
-        SponsorManager::afficherFenetreNotifications(this);
+        sponsorManager->afficherFenetreNotifications(this);
     });
 
     // Barre d'outils notification en HAUT À DROITE
@@ -1113,12 +1113,10 @@ void MainWindow::on_AfficherSponsor_clicked()
         QString triSelectionne = ui->comboBox_tri->currentText().toLower();
 
         if (triSelectionne == "nom") {
-            // ▼▼▼ APPEL TRI PAR NOM (EXISTANT) ▼▼▼
             Sponsor::trierParNom(ui->tableWidget_2);
             qDebug() << "✅ Tableau affiché ET trié par nom";
         }
         else if (triSelectionne == "id") {
-            // ▼▼▼ APPEL TRI PAR ID (NOUVEAU) ▼▼▼
             Sponsor::trierParId(ui->tableWidget_2);
             qDebug() << "✅ Tableau affiché ET trié par ID";
         }
@@ -1126,8 +1124,48 @@ void MainWindow::on_AfficherSponsor_clicked()
             qDebug() << "🔶 Aucun tri appliqué";
         }
     }
-}
 
+    // ⭐⭐ ACTION 3 : SURlIGNER LE SPONSOR RENOUVELÉ ⭐⭐
+    QString sponsorRenouvele = SponsorManager::getSponsorRenouvele();
+
+    if (!sponsorRenouvele.isEmpty()) {
+        qDebug() << "🎯 Recherche du sponsor à surligner:" << sponsorRenouvele;
+
+        bool sponsorTrouve = false;
+
+        // Parcourir toutes les lignes du tableau
+        for (int row = 0; row < ui->tableWidget_2->rowCount(); ++row) {
+            QTableWidgetItem* itemId = ui->tableWidget_2->item(row, 0);
+
+            if (itemId && itemId->text() == sponsorRenouvele) {
+                // 🔥 SURlIGNER TOUTE LA LIGNE EN ROSE
+                for (int col = 0; col < ui->tableWidget_2->columnCount(); ++col) {
+                    QTableWidgetItem* item = ui->tableWidget_2->item(row, col);
+                    if (item) {
+                        item->setBackground(QColor(255, 182, 193)); // Rose pastel
+                    }
+                }
+
+                // Sélectionner la ligne
+                ui->tableWidget_2->selectRow(row);
+
+                // Faire défiler jusqu'à la ligne
+                ui->tableWidget_2->scrollToItem(ui->tableWidget_2->item(row, 0));
+
+                sponsorTrouve = true;
+                qDebug() << "✅ Sponsor" << sponsorRenouvele << "surligné en rose";
+
+                // Effacer après affichage
+                SponsorManager::clearSponsorRenouvele(); // On va ajouter cette fonction
+                break;
+            }
+        }
+
+        if (!sponsorTrouve) {
+            qDebug() << "⚠️ Sponsor" << sponsorRenouvele << "non trouvé dans le tableau";
+        }
+    }
+}
 // ----------------- ANNULER - COMME PROJET -----------------
 void MainWindow::on_AnnulerSponsor_clicked()
 {

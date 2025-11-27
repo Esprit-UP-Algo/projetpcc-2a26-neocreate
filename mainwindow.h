@@ -80,7 +80,9 @@ private slots:
     void on_btnIA_clicked();
     void lancerNotificationDemarrage();
     void on_comboBox_tri_currentIndexChanged(int index);
-
+    void setSponsorRenouvele(const QString& sponsorId) { m_sponsorRenouvele = sponsorId; }
+    void clearSponsorRenouvele() { m_sponsorRenouvele.clear(); }
+    QString getSponsorRenouvele() const { return m_sponsorRenouvele; }
 
 private:
 
@@ -92,6 +94,7 @@ private:
     bool m_clientEditMode  = false;
     bool m_projetEditMode  = false;
     SponsorManager *sponsorManager;
+    QString m_sponsorRenouvele;
 
 
     Ui::MainWindow *ui;

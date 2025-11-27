@@ -1,4 +1,5 @@
 #include "sponsormanager.h"
+#include "sponsor.h"
 #include <QSqlQuery>
 #include <QDate>
 #include <QHeaderView>
@@ -21,7 +22,9 @@
 #include <QPropertyAnimation>
 #include <QGraphicsOpacityEffect>
 #include <QStringConverter>
-
+#include <QThread>
+#include <QTimer>
+QString SponsorManager::m_sponsorRenouveleStatic;
 // =====================================================
 // 1. CONSTRUCTEUR + SYSTÈME TRAY ICON
 // =====================================================
@@ -625,26 +628,38 @@ void SponsorManager::afficherFenetreNotifications(QWidget* parent)
 
 void SponsorManager::renouvelerContrat(const QString& sponsorId, QWidget* parent)
 {
-    qDebug() << "🔄 Renouvellement du sponsor ID:" << sponsorId;
+    qDebug() << "🔄 METHODE SANS RAFRAÎCHISSEMENT pour sponsor:" << sponsorId;
 
-    // Ici, tu dois appeler ta fonction existante pour :
     // 1. Aller à l'onglet Sponsor
-    // 2. Sélectionner le sponsor dans le tableau
-    // 3. Remplir le formulaire
+    QMetaObject::invokeMethod(parent, "showSponsor", Qt::QueuedConnection);
 
-    // Pour l'instant, on affiche un message
-    QMessageBox::information(parent, "Renouvellement",
-                             "Sponsor " + sponsorId + " sélectionné pour renouvellement.\n"
-                                                      "Rendez-vous dans l'onglet Sponsor pour modifier la date.");
+    // 2. Attendre un peu puis chercher directement
+    QTimer::singleShot(1000, [parent, sponsorId]() {
+        QTableWidget* tableau = parent->findChild<QTableWidget*>("tableWidget_2");
+
+        if (tableau) {
+            qDebug() << "🔍 Recherche directe dans le tableau existant...";
+
+            for (int row = 0; row < tableau->rowCount(); ++row) {
+                if (tableau->item(row, 0) && tableau->item(row, 0)->text() == sponsorId) {
+                    qDebug() << "✅ Sponsor trouvé, surlignage en BLEU...";
+
+                    for (int col = 0; col < tableau->columnCount(); ++col) {
+                        if (tableau->item(row, col)) {
+                            tableau->item(row, col)->setBackground(QColor(0, 0, 255)); // BLEU
+                            tableau->item(row, col)->setForeground(QColor(255, 0, 0)); // BLANC
+                        }
+                    }
+                    tableau->selectRow(row);
+                    break;
+                }
+            }
+        }
+    });
+
+    QMessageBox::information(parent, "Test",
+                             "Vérifiez si le sponsor " + sponsorId + " est coloré !");
 }
-
-void SponsorManager::showNotification(const QString &titre, const QString &message)
-{
-    if (m_trayIcon) {
-        m_trayIcon->showMessage(titre, message, QSystemTrayIcon::Information, 8000);
-    }
-}
-
 // =====================================================
 // 5. PARTIE WIDGETS CHART (EXISTANT)
 // =====================================================
@@ -918,4 +933,23 @@ void SponsorManager::masquerToastActuel()
     });
 
     animation->start();
+}
+// =====================================================
+// FONCTIONS POUR LE RENOUVELLEMENT
+// =====================================================
+
+QString SponsorManager::getSponsorRenouvele()
+{
+    return m_sponsorRenouveleStatic;
+}
+
+void SponsorManager::clearSponsorRenouvele()
+{
+    m_sponsorRenouveleStatic.clear();
+}
+void SponsorManager::showNotification(const QString &titre, const QString &message)
+{
+    if (m_trayIcon) {
+        m_trayIcon->showMessage(titre, message, QSystemTrayIcon::Information, 8000);
+    }
 }

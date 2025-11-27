@@ -36,15 +36,18 @@ public:
     //static void executerExportPDF(QTableWidget* tableau, QWidget* parent = nullptr);
     static int getNombreNotifications();
     static QList<QMap<QString, QString>> getNotificationsDetail();
-    static void afficherFenetreNotifications(QWidget* parent);
-    static void renouvelerContrat(const QString& sponsorId, QWidget* parent);
+
+
 
 
     static bool exporterExcel(QTableWidget* tableau, const QString& fichierSortie);
     static void executerExportExcel(QTableWidget* tableau, QWidget* parent);
     // ==================== AJOUT 3: NOUVELLE FONCTION PUBLIQUE ====================
     void demarrerNotificationsAutomatiques(QWidget* parentWidget); // ← AJOUT ICI
-
+    static void afficherFenetreNotifications(QWidget* parent);
+    static void renouvelerContrat(const QString& sponsorId, QWidget* parent);
+    static QString getSponsorRenouvele();
+    static void clearSponsorRenouvele();
     // ================================================================
     // === NOUVELLE PARTIE STATISTIQUES MODERNE & PRO (tout static) ===
     // ================================================================
@@ -57,6 +60,7 @@ public:
     // === FONCTION PRINCIPALE : DASHBOARD LIVE ULTRA MODERNE ===
     static void afficherDashboardKPI(QGroupBox* groupBox);
     void showNotification(const QString &titre, const QString &message);
+    QString getSponsorARenouveler() const { return m_sponsorARenouveler; }  // ← AJOUTE
 
 private:
     QSystemTrayIcon *m_trayIcon = nullptr;
@@ -66,11 +70,11 @@ private:
     QTimer* m_toastTimer = nullptr;           // ← AJOUT: Timer pour séquence
     QList<QMap<QString, QString>> m_toastQueue; // ← AJOUT: File d'attente
     QWidget* m_currentToast = nullptr;        // ← AJOUT: Toast actuellement affiché
-
+    QString m_sponsorARenouveler;
     // ==================== AJOUT 5: FONCTIONS PRIVÉES POUR NOTIFICATIONS ====================
     void afficherProchaineNotification();     // ← AJOUT: Affiche notification suivante
     void creerEtAfficherToast(const QMap<QString, QString>& notif); // ← AJOUT: Crée le toast
-    void masquerToastActuel();                // ← AJOUT: Cache le toast après 5s
+    void masquerToastActuel();    // ← AJOUT: Cache le toast après 5s
 
     // Widget réutilisable : un seul donut moderne qui fait tout
     static QWidget* createModernDonutChart(
@@ -80,11 +84,13 @@ private:
         const QMap<QString, QString> &colorMap,
         const QMap<QString, QString> &labelMap = QMap<QString, QString>()
         );
+    static QString m_sponsorRenouveleStatic;
 
     // === Tu peux garder tes anciennes fonctions si tu veux compatibilité rétro ===
     static QWidget* createKPICard(const QString &title, int count, int total, const QString &color);
     static QWidget* createPieChart(const QMap<QString, int>& stats, int total);
     static QWidget* createAncienneteChart(const QMap<QString, int>& stats, int total);
+
 };
 
 #endif // SPONSORMANAGER_H
