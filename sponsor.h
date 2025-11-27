@@ -51,6 +51,11 @@ public:
     // Recherche - NOUVELLE MÉTHODE COMME PROJET
     static bool rechercherParId(QString id, QString& nom, QString& contribution,
                                 QDate& dateDebut, QDate& dateFin, QString& email);
+    // RECHERCHE PAR NOM
+    static void rechercherParNom(QTableWidget* tableWidget, const QString& nom);
+
+    // TRI PAR ID CROISSANT
+    static void trierParId(QTableWidget* tableWidget);
 };
 
 #endif // SPONSOR_H

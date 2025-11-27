@@ -20,6 +20,7 @@
 #include <QApplication>
 #include <QPropertyAnimation>
 #include <QGraphicsOpacityEffect>
+#include <QStringConverter>
 
 // =====================================================
 // 1. CONSTRUCTEUR + SYSTÈME TRAY ICON
@@ -40,73 +41,62 @@ SponsorManager::SponsorManager(QObject *parent)
 // =====================================================
 // 2. PARTIE EXPORT PDF (EXISTANT - NE PAS TOUCHER)
 // =====================================================
-bool SponsorManager::exporterPDF(QTableWidget* tableau, const QString& fichierSortie)
+bool SponsorManager::exporterExcel(QTableWidget* tableau, const QString& fichierSortie)
 {
-    qDebug() << "[SponsorManager] Début export PDF vers:" << fichierSortie;
+    qDebug() << "[SponsorManager] Début export Excel vers:" << fichierSortie;
 
     if (!tableau || tableau->rowCount() == 0) {
         qDebug() << "[SponsorManager] Erreur: tableau vide ou null";
         return false;
     }
 
-    QString html;
-    html += "<html><head><meta charset='UTF-8'>";
-    html += "<style>";
-    html += "body { font-family: Arial, sans-serif; margin: 20px; }";
-    html += "h1 { color: #2c3e50; text-align: center; margin-bottom: 10px; }";
-    html += "h3 { color: #7f8c8d; text-align: center; margin-top: 0; }";
-    html += "table { width: 100%; border-collapse: collapse; margin-top: 20px; }";
-    html += "th { background-color: #34495e; color: white; padding: 10px; text-align: center; border: 1px solid #2c3e50; }";
-    html += "td { padding: 8px; text-align: center; border: 1px solid #bdc3c7; }";
-    html += "tr:nth-child(even) { background-color: #ecf0f1; }";
-    html += ".footer { text-align: center; margin-top: 20px; color: #7f8c8d; font-style: italic; }";
-    html += "</style></head><body>";
+    QFile file(fichierSortie);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qDebug() << "[SponsorManager] Erreur: impossible d'ouvrir le fichier";
+        return false;
+    }
 
-    html += "<h1>HISTORIQUE DES SPONSORS</h1>";
-    html += "<h3>Exporté le " + QDateTime::currentDateTime().toString("dd/MM/yyyy à HH:mm") + "</h3>";
+    QTextStream stream(&file);
+    // CORRECTION : Utilisez setEncoding au lieu de setCodec
+    stream.setEncoding(QStringConverter::Utf8);
 
-    html += "<table>";
-
+    // En-tête CSV (compatible Excel)
     int columnCount = tableau->columnCount();
-    html += "<tr>";
     for (int col = 0; col < columnCount; ++col) {
         QTableWidgetItem* header = tableau->horizontalHeaderItem(col);
         QString text = header ? header->text() : QString("Colonne %1").arg(col + 1);
-        html += "<th>" + text + "</th>";
-    }
-    html += "</tr>";
 
+        // Encadrer les textes avec des guillemets pour Excel
+        stream << "\"" << text << "\"";
+        if (col < columnCount - 1) stream << ";";
+    }
+    stream << "\n";
+
+    // Données
     int rowCount = tableau->rowCount();
     for (int row = 0; row < rowCount; ++row) {
-        html += "<tr>";
         for (int col = 0; col < columnCount; ++col) {
             QTableWidgetItem* item = tableau->item(row, col);
             QString text = item ? item->text() : "";
-            html += "<td>" + text + "</td>";
+
+            // Nettoyer le texte pour Excel
+            text.replace("\"", "\"\""); // Échapper les guillemets
+            text.replace(";", ",");     // Remplacer les points-virgules
+
+            stream << "\"" << text << "\"";
+            if (col < columnCount - 1) stream << ";";
         }
-        html += "</tr>";
+        stream << "\n";
     }
 
-    html += "</table>";
-    html += "<div class='footer'>Total : " + QString::number(rowCount) + " sponsors</div>";
-    html += "</body></html>";
-
-    QTextDocument document;
-    document.setHtml(html);
-
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setOutputFormat(QPrinter::PdfFormat);
-    printer.setOutputFileName(fichierSortie);
-
-    document.print(&printer);
-
-    qDebug() << "[SponsorManager] PDF exporté avec succès";
+    file.close();
+    qDebug() << "[SponsorManager] Excel exporté avec succès, lignes:" << rowCount;
     return true;
 }
 
-void SponsorManager::executerExportPDF(QTableWidget* tableau, QWidget* parent)
+void SponsorManager::executerExportExcel(QTableWidget* tableau, QWidget* parent)
 {
-    qDebug() << "[SponsorManager] Début export PDF complet";
+    qDebug() << "[SponsorManager] Début export Excel complet";
 
     if (!tableau || tableau->rowCount() == 0) {
         QMessageBox::warning(parent, "Export impossible", "Le tableau des sponsors est vide.");
@@ -115,19 +105,22 @@ void SponsorManager::executerExportPDF(QTableWidget* tableau, QWidget* parent)
 
     QString filePath = QFileDialog::getSaveFileName(
         parent,
-        "Exporter les sponsors en PDF",
-        "historique_sponsors.pdf",
-        "PDF (*.pdf)"
+        "Exporter les sponsors en Excel",
+        "historique_sponsors.csv",
+        "Fichiers Excel (*.csv)"
         );
 
     if (filePath.isEmpty()) return;
 
-    if (exporterPDF(tableau, filePath)) {
-        QMessageBox::information(parent, "Succès", "PDF exporté avec succès !\n" + filePath);
+    if (exporterExcel(tableau, filePath)) {
+        QMessageBox::information(parent, "Succès",
+                                 "Fichier Excel exporté avec succès !\n\n" + filePath);
     } else {
-        QMessageBox::critical(parent, "Erreur", "Échec de l'export PDF");
+        QMessageBox::critical(parent, "Erreur", "Échec de l'export Excel");
     }
 }
+
+
 
 // =====================================================
 // 3. PARTIE STATISTIQUES & DASHBOARD (EXISTANT)
@@ -889,6 +882,7 @@ void SponsorManager::creerEtAfficherToast(const QMap<QString, QString>& notif)
     QPoint toastPosition = QPoint(parentBottomRight.x() - 400, parentBottomRight.y() - 130);
     m_currentToast->move(toastPosition);
     m_currentToast->show();
+    QApplication::beep();
 
     // === ANIMATION ===
     QPropertyAnimation *animation = new QPropertyAnimation(m_currentToast, "pos");

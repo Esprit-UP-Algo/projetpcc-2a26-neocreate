@@ -23,6 +23,7 @@
 #include <QSystemTrayIcon>
 #include  <QApplication>  // ← AJOUT 1: Pour QApplication
 #include <QPropertyAnimation> // ← AJOUT 2: Pour les animations
+
 class SponsorManager : public QObject
 {
     Q_OBJECT
@@ -31,13 +32,16 @@ public:
     explicit SponsorManager(QObject *parent = nullptr);
 
     // === TES FONCTIONS EXISTANTES (PDF, notifications, etc.) ===
-    static bool exporterPDF(QTableWidget* tableau, const QString& fichierSortie);
-    static void executerExportPDF(QTableWidget* tableau, QWidget* parent = nullptr);
+    //static bool exporterPDF(QTableWidget* tableau, const QString& fichierSortie);
+    //static void executerExportPDF(QTableWidget* tableau, QWidget* parent = nullptr);
     static int getNombreNotifications();
     static QList<QMap<QString, QString>> getNotificationsDetail();
     static void afficherFenetreNotifications(QWidget* parent);
     static void renouvelerContrat(const QString& sponsorId, QWidget* parent);
 
+
+    static bool exporterExcel(QTableWidget* tableau, const QString& fichierSortie);
+    static void executerExportExcel(QTableWidget* tableau, QWidget* parent);
     // ==================== AJOUT 3: NOUVELLE FONCTION PUBLIQUE ====================
     void demarrerNotificationsAutomatiques(QWidget* parentWidget); // ← AJOUT ICI
 

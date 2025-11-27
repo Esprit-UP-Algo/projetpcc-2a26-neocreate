@@ -79,7 +79,7 @@ private slots:
     void on_tableWidget_2_cellClicked(int row, int column);
     void on_btnIA_clicked();
     void lancerNotificationDemarrage();
-
+    void on_comboBox_tri_currentIndexChanged(int index);
 
 
 private:

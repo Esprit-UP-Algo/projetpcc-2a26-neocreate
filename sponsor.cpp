@@ -233,12 +233,19 @@ void Sponsor::afficherDansTableau(QTableWidget* tableWidget)
         row++;
     }
 
+    // ▼▼▼▼▼ AJUSTEMENTS DE TAILLE SEULEMENT ▼▼▼▼▼
 
-    tableWidget->setAlternatingRowColors(false); // ⬅️ TOUTES LES LIGNES BLANCHES
+    // Étirer les colonnes pour prendre toute la largeur
+    tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+    // Ajuster la hauteur des lignes
+    tableWidget->verticalHeader()->setDefaultSectionSize(40);
+
+    // Garder toutes les lignes blanches
+    tableWidget->setAlternatingRowColors(false);
 
     qDebug() << "[Sponsor::afficherDansTableau] Tableau rafraîchi:" << row << "lignes";
 }
-
 // ----------------- RECHERCHER PAR ID - COMME PROJET -----------------
 bool Sponsor::rechercherParId(QString id, QString& nom, QString& contribution,
                               QDate& dateDebut, QDate& dateFin, QString& email)
@@ -307,3 +314,112 @@ void Sponsor::trierParNom(QTableWidget* tableWidget)
 
     qDebug() << "✅ Tableau trié par ordre alphabétique des noms";
 }
+// ▼▼▼▼▼▼▼▼▼▼ NOUVELLES FONCTIONS À AJOUTER ▼▼▼▼▼▼▼▼▼▼
+
+// ----------------- RECHERCHE PAR NOM -----------------
+void Sponsor::rechercherParNom(QTableWidget* tableWidget, const QString& nomRecherche)
+{
+    if (!tableWidget) return;
+
+    QSqlQuery query;
+    query.prepare("SELECT ID_SPONSOR, NOM, CONTRIBUTION, DATE_DEBUT, DATE_FIN, EMAIL FROM SPONSOR "
+                  "WHERE UPPER(NOM) LIKE UPPER(:nom) ORDER BY NOM");
+    query.bindValue(":nom", "%" + nomRecherche + "%");
+
+    // Vider le tableau
+    tableWidget->clear();
+    tableWidget->setRowCount(0);
+
+    // Configuration des colonnes
+    QStringList headers = {"ID", "Nom", "Contribution", "Date Début", "Date Fin", "Email"};
+    tableWidget->setColumnCount(headers.size());
+    tableWidget->setHorizontalHeaderLabels(headers);
+
+    if (!query.exec()) {
+        qWarning() << "[Sponsor::rechercherParNom] Erreur requête:" << query.lastError().text();
+        return;
+    }
+
+    // Remplissage des données
+    int row = 0;
+    while (query.next()) {
+        tableWidget->insertRow(row);
+
+        for (int col = 0; col < headers.size(); ++col) {
+            QString text = query.value(col).toString();
+
+            // Formater les dates
+            if (col == 3 || col == 4) {
+                QDate date = query.value(col).toDate();
+                text = date.isValid() ? date.toString("dd/MM/yyyy") : "";
+            }
+
+            QTableWidgetItem* item = new QTableWidgetItem(text);
+            item->setTextAlignment(Qt::AlignCenter);
+            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+            tableWidget->setItem(row, col, item);
+        }
+        row++;
+    }
+
+    tableWidget->setAlternatingRowColors(false);
+    qDebug() << "[Sponsor::rechercherParNom] Recherche terminée:" << row << "sponsors trouvés pour le nom:" << nomRecherche;
+}
+
+// ----------------- TRI PAR ID CROISSANT -----------------
+void Sponsor::trierParId(QTableWidget* tableWidget)
+{
+    if (!tableWidget) return;
+
+    qDebug() << "🔄 Tri par ordre croissant des IDs...";
+
+    // Créer une liste pour stocker les données triées
+    QList<QStringList> donnees;
+
+    // Récupérer toutes les données du tableau
+    int rowCount = tableWidget->rowCount();
+    int colCount = tableWidget->columnCount();
+
+    for (int row = 0; row < rowCount; ++row) {
+        QStringList ligne;
+        for (int col = 0; col < colCount; ++col) {
+            QTableWidgetItem* item = tableWidget->item(row, col);
+            ligne << (item ? item->text() : "");
+        }
+        donnees.append(ligne);
+    }
+
+    // Trier par ID (colonne 0) - ordre croissant
+    std::sort(donnees.begin(), donnees.end(), [](const QStringList &a, const QStringList &b) {
+        if (a.size() > 0 && b.size() > 0) {
+            // Convertir les IDs en nombres pour un tri numérique
+            bool ok1, ok2;
+            int idA = a[0].toInt(&ok1);
+            int idB = b[0].toInt(&ok2);
+
+            // Si les deux sont des nombres, tri numérique
+            if (ok1 && ok2) {
+                return idA < idB;
+            }
+            // Sinon, tri alphabétique
+            return a[0] < b[0];
+        }
+        return false;
+    });
+
+    // Vider et remplir le tableau avec les données triées
+    tableWidget->setRowCount(0);
+
+    for (int row = 0; row < donnees.size(); ++row) {
+        tableWidget->insertRow(row);
+        for (int col = 0; col < donnees[row].size(); ++col) {
+            QTableWidgetItem* item = new QTableWidgetItem(donnees[row][col]);
+            item->setTextAlignment(Qt::AlignCenter);
+            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+            tableWidget->setItem(row, col, item);
+        }
+    }
+
+    qDebug() << "✅ Tableau trié par ordre croissant des IDs";
+}
+// ▲▲▲▲▲▲▲▲▲▲ NOUVELLES FONCTIONS À AJOUTER ▲▲▲▲▲▲▲▲▲▲

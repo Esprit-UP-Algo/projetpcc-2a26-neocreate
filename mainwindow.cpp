@@ -46,7 +46,7 @@ MainWindow::MainWindow(QWidget *parent)
     , currentSponsorId("")  // Initialiser ici
 {
     ui->setupUi(this);
-    this->showFullScreen();
+
     this->showMaximized();
 
     qDebug() << "=== DÉBUT INITIALISATION ===";
@@ -92,13 +92,15 @@ MainWindow::MainWindow(QWidget *parent)
 
     // ========== CONNECTIONS SPONSOR ==========
     connect(ui->AjouterSponsor, &QPushButton::clicked, this, &MainWindow::on_AjouterSponsor_clicked);
+    // Remplacez l'ancienne connexion PDF par Excel :
     connect(ui->exportationpdf, &QPushButton::clicked, this, [this]() {
-        SponsorManager::executerExportPDF(ui->tableWidget_2, this);
+        SponsorManager::executerExportExcel(ui->tableWidget_2, this);
     });
     connect(ui->btn_actualiser, &QPushButton::clicked, this, [this]() {
         SponsorManager::afficherDashboardKPI(ui->groupBox_8);
     });
-
+    connect(ui->comboBox_tri, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::on_comboBox_tri_currentIndexChanged);
     // ========== CONFIGURATION TABLEAU SPONSOR ==========
     ui->tableWidget_2->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->tableWidget_2->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -109,29 +111,36 @@ MainWindow::MainWindow(QWidget *parent)
 
     // ========== SYSTÈME DE NOTIFICATION ==========
     QToolButton *btnNotification = new QToolButton(this);
-    btnNotification->setText("🔔 Notifications");
-    btnNotification->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    btnNotification->setText("🔔"); // ← ENLEVER L'ESPACE
+    btnNotification->setToolButtonStyle(Qt::ToolButtonIconOnly); // ← ICÔNE SEULEMENT
+    btnNotification->setFixedSize(50, 50); // ← TAILLE FIXE POUR UN CERCLE
+
+    // Style pour un bouton rond
     btnNotification->setStyleSheet(
         "QToolButton { "
-        "font-size: 14px; background: #3498db; color: white; border: none; "
-        "padding: 8px 15px; border-radius: 6px; margin: 5px; "
-        "font-weight: bold; "
+        "    color: white; border: none; "
+        "    border-radius: 20px; " // ← CERCLE PARFAIT
+        "    padding: 0px; " // ← PAS DE PADDING
+        "    font-size: 30px; " // ← TAILLE DE LA CLOCHE
+        "    font-weight: bold; "
+        "    margin: 2px; "
         "}"
-        "QToolButton:hover { background: #2980b9; }"
+        "QToolButton:hover { background: #FF69B4; }"
         "QToolButton:pressed { background: #21618c; }"
         );
 
-    // Badge de notification
+    // Badge de notification - POSITION RÉELLE EN HAUT À DROITE
     QLabel *badge = new QLabel("0", btnNotification);
     badge->setStyleSheet(
         "QLabel { "
-        "background: #e74c3c; color: white; font-size: 10px; font-weight: bold; "
-        "border-radius: 8px; padding: 2px 6px; min-width: 18px; min-height: 18px; "
-        "border: 2px solid white; "
+        "    background: #e74c3c; color: white; font-size: 9px; font-weight: bold; "
+        "    border-radius: 7px; padding: 1px 4px; "
+        "    border: 1.5px solid white; "
         "}"
         );
     badge->setAlignment(Qt::AlignCenter);
-    badge->move(btnNotification->width() - 25, 5); // Position dans le bouton
+    badge->setFixedSize(16, 16); // ← TAILLE FIXE
+    badge->move(btnNotification->width() - 18, 8); // ← EN HAUT À DROITE
     badge->setVisible(false);
 
     connect(btnNotification, &QToolButton::clicked, this, [this]() {
@@ -139,34 +148,41 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     // Barre d'outils notification en HAUT À DROITE
-    QToolBar *notificationBar = new QToolBar("Notifications", this);
-    notificationBar->setMovable(false);
-    notificationBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    addToolBar(Qt::TopToolBarArea, notificationBar);
-
-    // ⭐⭐ UN SEUL SPACER ⭐⭐
-    QWidget *spacer = new QWidget();
-    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    notificationBar->addWidget(spacer);
-
-    notificationBar->addWidget(btnNotification);
+    btnNotification->move(1410, 50);
+    btnNotification->raise(); // ← METTRE DEVANT TOUS LES AUTRES WIDGETS
+    btnNotification->show();
 
     // Timer pour rafraîchissement notifications
     QTimer *timer = new QTimer(this);
     connect(timer, &QTimer::timeout, [badge, btnNotification]() {
         int count = SponsorManager::getNombreNotifications();
-        badge->setText(QString::number(count));
-        badge->setVisible(count > 0);
 
-        // Recalculer la position du badge si la taille du bouton change
-        badge->move(btnNotification->width() - 25, 5);
+        // NOUVEAU : Gestion améliorée du badge
+        if (count > 0) {
+            badge->setText(count > 9 ? "9+" : QString::number(count));
+            badge->setVisible(true);
+            btnNotification->setToolTip(QString("%1 notification(s)").arg(count));
+        } else {
+            badge->setVisible(false);
+            btnNotification->setToolTip("Aucune notification");
+        }
+
+        // NOUVELLE POSITION : en haut à droite
+        badge->move(btnNotification->width() - 18, 2);
     });
     timer->start(60000); // 1 minute
 
     // Premier rafraîchissement
+    // Premier rafraîchissement
     int count = SponsorManager::getNombreNotifications();
-    badge->setText(QString::number(count));
-    badge->setVisible(count > 0);
+    if (count > 0) {
+        badge->setText(count > 9 ? "9+" : QString::number(count));
+        badge->setVisible(true);
+        btnNotification->setToolTip(QString("%1 notification(s)").arg(count));
+    } else {
+        badge->setVisible(false);
+        btnNotification->setToolTip("Aucune notification");
+    }
     // ========== INITIALISATION FINALE ==========
     // ========== INITIALISATION FINALE ==========
     GestionCreateur *gestionCreateur = new GestionCreateur(ui, this);
@@ -1092,14 +1108,23 @@ void MainWindow::on_AfficherSponsor_clicked()
     // ACTION 1 : AFFICHER LE TABLEAU
     Sponsor::afficherDansTableau(ui->tableWidget_2);
 
-    // ACTION 2 : APPLIQUER LE TRI - COMPARAISON SANS CASSE
-    if (ui->comboBox_tri && ui->comboBox_tri->currentText().toLower() == "nom") {
-        ui->tableWidget_2->setSortingEnabled(true);
-        ui->tableWidget_2->sortByColumn(1, Qt::AscendingOrder);
-        ui->tableWidget_2->setSortingEnabled(false);
-        qDebug() << "✅ Tableau affiché ET trié par nom";
-    } else {
-        qDebug() << "❌ Tri NON appliqué";
+    // ACTION 2 : APPLIQUER LE TRI
+    if (ui->comboBox_tri) {
+        QString triSelectionne = ui->comboBox_tri->currentText().toLower();
+
+        if (triSelectionne == "nom") {
+            // ▼▼▼ APPEL TRI PAR NOM (EXISTANT) ▼▼▼
+            Sponsor::trierParNom(ui->tableWidget_2);
+            qDebug() << "✅ Tableau affiché ET trié par nom";
+        }
+        else if (triSelectionne == "id") {
+            // ▼▼▼ APPEL TRI PAR ID (NOUVEAU) ▼▼▼
+            Sponsor::trierParId(ui->tableWidget_2);
+            qDebug() << "✅ Tableau affiché ET trié par ID";
+        }
+        else {
+            qDebug() << "🔶 Aucun tri appliqué";
+        }
     }
 }
 
@@ -1131,61 +1156,88 @@ void MainWindow::on_AnnulerSponsor_clicked()
 // ----------------- RECHERCHER - COMME PROJET -----------------
 void MainWindow::on_RechercherSponsor_clicked()
 {
-    QString idRecherche = ui->lineEdit_chercher->text().trimmed();
+    QString recherche = ui->lineEdit_chercher->text().trimmed();
 
-    if (idRecherche.isEmpty()) {
-        QMessageBox::warning(this, "Recherche", "Entrez un ID pour la recherche.");
+    if (recherche.isEmpty()) {
+        QMessageBox::warning(this, "Recherche", "Entrez un ID ou un nom pour la recherche.");
         return;
     }
 
-    // Variables pour stocker les résultats
-    QString nom, contribution, email;
-    QDate dateDebut, dateFin;
-
-    // Recherche en base
-    if (Sponsor::rechercherParId(idRecherche, nom, contribution, dateDebut, dateFin, email)) {
-        // REMPLIR les champs
-        ui->lineEdit_id->setText(idRecherche);
-        ui->lineEdit_nom->setText(nom);
-
-        // Trouver l'index de la contribution
-        int index = ui->combobox_contribution->findText(contribution);
-        if (index >= 0) {
-            ui->combobox_contribution->setCurrentIndex(index);
+    // Réinitialiser les couleurs
+    for (int row = 0; row < ui->tableWidget_2->rowCount(); ++row) {
+        for (int col = 0; col < ui->tableWidget_2->columnCount(); ++col) {
+            QTableWidgetItem* item = ui->tableWidget_2->item(row, col);
+            if (item) item->setBackground(QBrush());
         }
+    }
 
-        ui->date_debut->setDate(dateDebut);
-        ui->date_fin->setDate(dateFin);
-        ui->lineEdit_email->setText(email);
+    // Si c'est un ID (8 chiffres)
+    if (recherche.length() == 8 && recherche.toInt() != 0) {
+        // ▼▼▼ RECHERCHE PAR ID (EXISTANT) ▼▼▼
+        QString nom, contribution, email;
+        QDate dateDebut, dateFin;
 
-        // Set current ID
-        currentSponsorId = idRecherche;
+        if (Sponsor::rechercherParId(recherche, nom, contribution, dateDebut, dateFin, email)) {
+            // REMPLIR les champs
+            ui->lineEdit_id->setText(recherche);
+            ui->lineEdit_nom->setText(nom);
 
-        // Colorier la ligne en rose
-        bool trouve = false;
+            int index = ui->combobox_contribution->findText(contribution);
+            if (index >= 0) ui->combobox_contribution->setCurrentIndex(index);
+
+            ui->date_debut->setDate(dateDebut);
+            ui->date_fin->setDate(dateFin);
+            ui->lineEdit_email->setText(email);
+
+            currentSponsorId = recherche;
+
+            // Colorier la ligne en ROSE
+            bool trouve = false;
+            for (int row = 0; row < ui->tableWidget_2->rowCount(); ++row) {
+                QTableWidgetItem* itemId = ui->tableWidget_2->item(row, 0);
+                if (itemId && itemId->text() == recherche) {
+                    trouve = true;
+                    for (int col = 0; col < ui->tableWidget_2->columnCount(); ++col) {
+                        QTableWidgetItem* item = ui->tableWidget_2->item(row, col);
+                        if (item) item->setBackground(QColor(255, 182, 193)); // ROSE
+                    }
+                    break;
+                }
+            }
+
+            if (trouve) {
+                QMessageBox::information(this, "Recherche", "Sponsor trouvé par ID !\nLigne surlignée en ROSE.");
+            } else {
+                QMessageBox::information(this, "Recherche", "Sponsor trouvé par ID !\nCliquez sur 'Afficher' pour voir dans le tableau.");
+            }
+        } else {
+            QMessageBox::information(this, "Recherche", "Aucun sponsor trouvé avec l'ID: " + recherche);
+            on_AnnulerSponsor_clicked();
+        }
+    } else {
+        // ▼▼▼ RECHERCHE PAR NOM (NOUVEAU) ▼▼▼
+        Sponsor::rechercherParNom(ui->tableWidget_2, recherche);
+
+        // Colorier les lignes en VERT
+        int nbResultats = 0;
         for (int row = 0; row < ui->tableWidget_2->rowCount(); ++row) {
-            QTableWidgetItem* itemId = ui->tableWidget_2->item(row, 0);
-            if (itemId && itemId->text() == idRecherche) {
-                trouve = true;
-                // Colorier toute la ligne en rose pastel
+            QTableWidgetItem* itemNom = ui->tableWidget_2->item(row, 1);
+            if (itemNom && itemNom->text().toLower().contains(recherche.toLower())) {
+                nbResultats++;
                 for (int col = 0; col < ui->tableWidget_2->columnCount(); ++col) {
                     QTableWidgetItem* item = ui->tableWidget_2->item(row, col);
-                    if (item) {
-                        item->setBackground(QColor(255, 182, 193)); // Rose pastel
-                    }
+                    if (item) item->setBackground(QColor(144, 238, 144)); // VERT CLAIR
                 }
-                break;
             }
         }
 
-        if (trouve) {
-            QMessageBox::information(this, "Recherche", "Sponsor trouvé !\nLa ligne est surlignée en rose.");
+        if (nbResultats > 0) {
+            QMessageBox::information(this, "Recherche",
+                                     QString("%1 sponsor(s) trouvé(s) pour le nom: %2\nLignes surlignées en VERT.")
+                                         .arg(nbResultats).arg(recherche));
         } else {
-            QMessageBox::information(this, "Recherche", "Sponsor trouvé !\nCliquez sur 'Afficher' pour voir dans le tableau.");
+            QMessageBox::information(this, "Recherche", "Aucun sponsor trouvé pour le nom: " + recherche);
         }
-    } else {
-        QMessageBox::information(this, "Recherche", "Aucun sponsor trouvé avec l'ID: " + idRecherche);
-        on_AnnulerSponsor_clicked();
     }
 }
 
@@ -1251,7 +1303,16 @@ void MainWindow::lancerNotificationDemarrage()
                                          "Bienvenue dans la gestion des sponsors !");
     }
 }
+// ▼▼▼▼▼ AJOUTEZ CETTE FONCTION POUR LE TRI AUTOMATIQUE ▼▼▼▼▼
+void MainWindow::on_comboBox_tri_currentIndexChanged(int index)
+{
+    Q_UNUSED(index);
 
+    // Appliquer le tri automatiquement si le tableau a des données
+    if (ui->tableWidget_2->rowCount() > 0) {
+        on_AfficherSponsor_clicked();
+    }
+}
 MainWindow::~MainWindow()
 {
     delete ui;
