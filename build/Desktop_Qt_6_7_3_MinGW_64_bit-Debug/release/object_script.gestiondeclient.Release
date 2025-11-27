@@ -1,0 +1,12 @@
+release/Login.o
+release/client.o
+release/connection.o
+release/main.o
+release/mainwindow.o
+release/projet.o
+release/staff.o
+release/materiel.o
+release/sponsor.o
+release/qrc_resource.o
+release/moc_Login.o
+release/moc_mainwindow.o
