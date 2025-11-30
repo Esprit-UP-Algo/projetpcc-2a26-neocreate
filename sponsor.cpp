@@ -161,7 +161,7 @@ bool Sponsor::supprimer(QString id)
         }
     }
 
-    // Transaction - COMME PROJET
+    // Transaction - C
     bool startedTx = false;
     if (db.driver() && db.driver()->hasFeature(QSqlDriver::Transactions)) {
         startedTx = db.transaction();
@@ -246,7 +246,7 @@ void Sponsor::afficherDansTableau(QTableWidget* tableWidget)
 
     qDebug() << "[Sponsor::afficherDansTableau] Tableau rafraîchi:" << row << "lignes";
 }
-// ----------------- RECHERCHER PAR ID - COMME PROJET -----------------
+// ----------------- RECHERCHER PAR ID  -----------------
 bool Sponsor::rechercherParId(QString id, QString& nom, QString& contribution,
                               QDate& dateDebut, QDate& dateFin, QString& email)
 {
@@ -275,7 +275,7 @@ void Sponsor::trierParNom(QTableWidget* tableWidget)
 
     qDebug() << "🔄 Tri par ordre alphabétique des noms...";
 
-    // Créer une liste pour stocker les données triées
+
     QList<QStringList> donnees;
 
     // Récupérer toutes les données du tableau

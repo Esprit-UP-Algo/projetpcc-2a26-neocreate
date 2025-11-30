@@ -4363,21 +4363,6 @@ background:transparent;</string>
     background-color: white;
 }</string>
          </property>
-         <item>
-          <property name="text">
-           <string>Materiel</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Service</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Autre</string>
-          </property>
-         </item>
         </widget>
         <widget class="QLabel" name="label_14">
          <property name="geometry">
@@ -4892,70 +4877,11 @@ QGroupBox::title {
          <string>Qtastiques de sponsors</string>
         </property>
        </widget>
-       <widget class="QGroupBox" name="groupBox_9">
-        <property name="geometry">
-         <rect>
-          <x>1070</x>
-          <y>170</y>
-          <width>171</width>
-          <height>271</height>
-         </rect>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QGroupBox {
-    border: 2px solid #F8C8DC;
-    border-radius: 15px;
-    margin-top: 20px;
-    background: qlineargradient(spread:pad,
-                                x1:0, y1:0,
-                                x2:1, y2:0,
-                                stop:0 #F8C8DC,
-                                stop:1 #BDC3C7);
-    color: white;
-    font-weight: bold;
-    padding: 15px;
-}
-
-QGroupBox::title {
-    subcontrol-origin: margin;
-    subcontrol-position: top centre; 
-    padding: 10px 20px; 
-    border-radius: 15px; 
-    background: qlineargradient(spread:pad,
-                                x1:0, y1:0,
-                                x2:1, y2:0,
-                                stop:0 #F8C8DC,
-                                stop:1 #BDC3C7);
-    color: black; 
-    font-size: 20px; 
-    font-weight: bold;
-}</string>
-        </property>
-        <property name="title">
-         <string>Fonctionnalités </string>
-        </property>
-        <widget class="QToolButton" name="btnIA">
-         <property name="geometry">
-          <rect>
-           <x>10</x>
-           <y>60</y>
-           <width>141</width>
-           <height>51</height>
-          </rect>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">QToolButton { border: none; border-radius: 20px; color: white; padding: 1px; background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #9B59B6, stop:1 #BDC3C7); } QToolButton:hover { background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #BDC3C7, stop:1 #F8C8DC);}</string>
-         </property>
-         <property name="text">
-          <string>Recomendation ia</string>
-         </property>
-        </widget>
-       </widget>
        <widget class="QToolButton" name="btn_actualiser">
         <property name="geometry">
          <rect>
-          <x>1060</x>
-          <y>500</y>
+          <x>1070</x>
+          <y>390</y>
           <width>171</width>
           <height>61</height>
          </rect>
@@ -4965,6 +4891,22 @@ QGroupBox::title {
         </property>
         <property name="text">
          <string>refraichement </string>
+        </property>
+       </widget>
+       <widget class="QToolButton" name="btnIA">
+        <property name="geometry">
+         <rect>
+          <x>1070</x>
+          <y>300</y>
+          <width>171</width>
+          <height>61</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QToolButton { border: none; border-radius: 20px; color: white; padding: 1px; background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #9B59B6, stop:1 #BDC3C7); } QToolButton:hover { background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #BDC3C7, stop:1 #F8C8DC);}</string>
+        </property>
+        <property name="text">
+         <string>Recomendation ia</string>
         </property>
        </widget>
       </widget>

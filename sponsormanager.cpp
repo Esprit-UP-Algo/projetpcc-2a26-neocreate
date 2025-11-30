@@ -125,6 +125,8 @@ void SponsorManager::executerExportExcel(QTableWidget* tableau, QWidget* parent)
 
 
 
+
+
 // =====================================================
 // 3. PARTIE STATISTIQUES & DASHBOARD (EXISTANT)
 // =====================================================
