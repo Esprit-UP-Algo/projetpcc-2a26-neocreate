@@ -1,0 +1,4 @@
+#ifndef CONNECTION_ARD_H
+#define CONNECTION_ARD_H
+
+#endif // CONNECTION_ARD_H
