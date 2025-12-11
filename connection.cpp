@@ -7,9 +7,10 @@ Connection::Connection()
     db = QSqlDatabase::addDatabase("QODBC");
 
     // Connection parameters
-    db.setDatabaseName("Source_Projet2a");
+    db.setDatabaseName("Source_Projet2a2");
     db.setUserName("abir");
     db.setPassword("esprit18");
+
 }
 
 Connection::~Connection()

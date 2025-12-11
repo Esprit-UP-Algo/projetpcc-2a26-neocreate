@@ -29,16 +29,19 @@ public:
     void afficher();
     void statistiques();
 
-private slots:
+public slots:               // ← moved here
+    void exporterPdf();      // ← NOW PUBLIC
+    void plateformeDominante();
+    void predire();
     void ajouter();
     void supprimer();
     void modifier();
     void rechercher();
     void trier();
     void onCellChanged(int row, int column);
-    void exporterPdf();
 
-    void predire();                          // bouton prédire
+
+private slots:
 
 private:
     Ui::MainWindow *ui;

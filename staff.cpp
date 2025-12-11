@@ -24,7 +24,7 @@ Staff::Staff(QString id, QString nom, QString prenom, QString poste,QString comp
 bool Staff::ajouter()
 {
     QSqlQuery query;
-    query.prepare("INSERT INTO ABIR.EMPLOYE (id_employe, nom, prenom, poste, competence, telephone, email, mot_de_passe) "
+    query.prepare("INSERT INTO abir.EMPLOYE (id_employe, nom, prenom, poste, competence, telephone, email, mot_de_passe) "
                   "VALUES (:id, :nom, :prenom, :poste, :competence, :telephone, :email, :mot_de_passe)");
 
     query.bindValue(":id", id);
@@ -48,7 +48,7 @@ bool Staff::ajouter()
 bool Staff::supprimer(QString id)
 {
     QSqlQuery query;
-    query.prepare("DELETE FROM ABIR.EMPLOYE WHERE id_employe = :id");
+    query.prepare("DELETE FROM abir.EMPLOYE WHERE id_employe = :id");
     query.bindValue(":id", id);
 
     if (!query.exec()) {
@@ -62,7 +62,7 @@ bool Staff::supprimer(QString id)
 bool Staff::modifier()
 {
     QSqlQuery query;
-    query.prepare("UPDATE ABIR.EMPLOYE SET nom = :nom, prenom = :prenom, poste = :poste, "
+    query.prepare("UPDATE abir.EMPLOYE SET nom = :nom, prenom = :prenom, poste = :poste, "
                   "competence = :competence, telephone = :telephone, email = :email, mot_de_passe = :mot_de_passe "
                   "WHERE id_employe = :id");
 
@@ -86,7 +86,7 @@ bool Staff::modifier()
 QSqlQueryModel* Staff::afficher()
 {
     QSqlQueryModel *model = new QSqlQueryModel();
-    model->setQuery("SELECT id_employe, nom, prenom, poste, competence, telephone, email, mot_de_passe FROM ABIR.EMPLOYE");
+    model->setQuery("SELECT id_employe, nom, prenom, poste, competence, telephone, email, mot_de_passe FROM abir.EMPLOYE");
     return model;
 }
 
@@ -106,7 +106,7 @@ bool Staff::isValidEmail(const QString &email)
 QSqlQueryModel* Staff::afficherTrié(const QString &sortBy)
 {
     QSqlQueryModel *model = new QSqlQueryModel();
-    QString query = "SELECT id_employe, nom, prenom, poste, competence, telephone, email, mot_de_passe FROM ABIR.EMPLOYE ";
+    QString query = "SELECT id_employe, nom, prenom, poste, competence, telephone, email, mot_de_passe FROM abir.EMPLOYE ";
     
     // Add ORDER BY clause based on sortBy parameter
     if (sortBy == "Nom" || sortBy == "nom") {
@@ -136,7 +136,7 @@ QSqlQueryModel* Staff::afficherTrié(const QString &sortBy)
 QSqlQueryModel* Staff::chercherParId(const QString &id)
 {
     QSqlQueryModel *model = new QSqlQueryModel();
-    QString query = "SELECT id_employe, nom, prenom, poste, competence, telephone, email, mot_de_passe FROM ABIR.EMPLOYE ";
+    QString query = "SELECT id_employe, nom, prenom, poste, competence, telephone, email, mot_de_passe FROM abir.EMPLOYE ";
     query += "WHERE id_employe = '" + id + "'";
     
     model->setQuery(query);

@@ -35,6 +35,8 @@ public:
     //static bool exporterPDF(QTableWidget* tableau, const QString& fichierSortie);
     //static void executerExportPDF(QTableWidget* tableau, QWidget* parent = nullptr);
     static int getNombreNotifications();
+    static int getJoursRestantsMinimum();  // Get minimum days remaining until expiration
+    static QList<int> getBeepSequenceForNotifications();  // Get beep sequence based on notification colors
     static QList<QMap<QString, QString>> getNotificationsDetail();
 
 

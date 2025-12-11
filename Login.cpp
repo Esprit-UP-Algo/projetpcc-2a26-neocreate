@@ -229,7 +229,7 @@ void Login::envoyerMotDePasseOublie()
 
                          QSqlQuery query;
                          query.prepare("SELECT id_employe, nom, prenom "
-                                       "FROM ABIR.EMPLOYE WHERE email = :email");
+                                       "FROM abir.EMPLOYE WHERE email = :email");
                          query.bindValue(":email", email);
 
                          if (!query.exec()) {
@@ -404,7 +404,7 @@ bool Login::verifierCode(const QString &codeSaisi)
 bool Login::mettreAJourMotDePasse(const QString &id, const QString &nouveauMdp)
 {
     QSqlQuery query;
-    query.prepare("UPDATE ABIR.EMPLOYE SET mot_de_passe = :mdp WHERE id_employe = :id");
+    query.prepare("UPDATE abir.EMPLOYE SET mot_de_passe = :mdp WHERE id_employe = :id");
     query.bindValue(":mdp", nouveauMdp);
     query.bindValue(":id", id);
 
@@ -436,7 +436,7 @@ void Login::on_connect_clicked()
     // Vérification dans la base de données
     QSqlQuery query;
     query.prepare("SELECT id_employe, nom, prenom, poste, competence, telephone, email, mot_de_passe "
-                  " FROM ABIR.EMPLOYE WHERE id_employe = :id AND mot_de_passe = :mdp");
+                  " FROM abir.EMPLOYE WHERE id_employe = :id AND mot_de_passe = :mdp");
     query.bindValue(":id", id);
     query.bindValue(":mdp", mdp);
 
@@ -463,7 +463,7 @@ void Login::on_connect_clicked()
     } else {
         // Vérifier si l'ID existe mais le mot de passe est incorrect
         QSqlQuery checkId;
-        checkId.prepare("SELECT COUNT(*) FROM ABIR.EMPLOYE WHERE id_employe = :id");
+        checkId.prepare("SELECT COUNT(*) FROM abir.EMPLOYE WHERE id_employe = :id");
         checkId.bindValue(":id", id);
 
         if (checkId.exec() && checkId.next()) {

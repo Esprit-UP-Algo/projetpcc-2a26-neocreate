@@ -465,12 +465,108 @@ int SponsorManager::getNombreNotifications()
     return count;
 }
 
+int SponsorManager::getJoursRestantsMinimum()
+{
+    QSqlQuery query;
+    int minDays = 999; // Large number to start
+
+    // Calculate days REMAINING until expiration (DATE_FIN - SYSDATE)
+    // Get sponsors expiring within 7 days or already expired
+    bool success = query.exec(
+        "SELECT DATE_FIN "
+        "FROM ABIR.SPONSOR "
+        "WHERE DATE_FIN <= SYSDATE + 7 AND DATE_FIN >= SYSDATE - 30 "
+        "ORDER BY DATE_FIN"
+        );
+
+    QDate today = QDate::currentDate();
+
+    if (success) {
+        while (query.next()) {
+            QDate dateFin = query.value(0).toDate();
+
+            if (!dateFin.isValid()) {
+                qWarning() << "🔔 Invalid date found in database";
+                continue;
+            }
+
+            // Calculate days remaining in Qt (more reliable than Oracle CEIL)
+            int joursRestants = 0;
+            if (dateFin < today) {
+                joursRestants = 0;  // Already expired
+            } else {
+                joursRestants = today.daysTo(dateFin);  // Days remaining
+            }
+
+            qDebug() << "🔔 Sponsor expires:" << dateFin.toString("dd/MM/yyyy")
+                     << "Today:" << today.toString("dd/MM/yyyy")
+                     << "Days remaining:" << joursRestants;
+
+            // Find the minimum days remaining (most urgent)
+            if (joursRestants >= 0 && joursRestants < minDays) {
+                minDays = joursRestants;
+            }
+        }
+    } else {
+        qWarning() << "🔔 Error querying sponsors:" << query.lastError().text();
+    }
+
+    // If no alerts found, return 0 (no beeps)
+    if (minDays == 999) {
+        minDays = 0;
+        qDebug() << "🔔 No sponsors expiring soon found";
+    }
+
+    // Limit to maximum 7 beeps (for sponsors expiring in 7+ days)
+    if (minDays > 7) {
+        minDays = 7;
+    }
+
+    qDebug() << "🔔 Jours restants minimum jusqu'à expiration:" << minDays << "(buzzer will beep" << minDays << "times)";
+    return minDays;
+}
+
+QList<int> SponsorManager::getBeepSequenceForNotifications()
+{
+    QList<int> beepSequence;
+    QList<QMap<QString, QString>> notifications = getNotificationsDetail();
+
+    // Map notification types to beep counts based on color:
+    // expire (red) = 4 beeps
+    // j1 (orange) = 3 beeps
+    // j3 (yellow) = 2 beeps
+    // j7 (blue) = 1 beep
+
+    for (const auto &notif : notifications) {
+        QString type = notif["type"];
+        int beeps = 0;
+
+        if (type == "expire") {
+            beeps = 4;  // Red = 4 beeps
+        } else if (type == "j1") {
+            beeps = 3;  // Orange = 3 beeps
+        } else if (type == "j3") {
+            beeps = 2;  // Yellow = 2 beeps
+        } else if (type == "j7") {
+            beeps = 1;  // Blue = 1 beep
+        }
+
+        if (beeps > 0) {
+            beepSequence.append(beeps);
+            qDebug() << "🔔 Notification type:" << type << "->" << beeps << "beeps";
+        }
+    }
+
+    qDebug() << "🔔 Total beep sequence:" << beepSequence << "(" << beepSequence.size() << "notifications)";
+    return beepSequence;
+}
+
 QList<QMap<QString, QString>> SponsorManager::getNotificationsDetail()
 {
     QList<QMap<QString, QString>> notifications;
     QSqlQuery query;
 
-    bool success = query.exec(
+    QString sqlQuery =
         "SELECT ID_SPONSOR, NOM, DATE_FIN, "
         "CASE "
         "    WHEN DATE_FIN < SYSDATE THEN 'expire' "
@@ -480,26 +576,44 @@ QList<QMap<QString, QString>> SponsorManager::getNotificationsDetail()
         "END as type_alerte "
         "FROM ABIR.SPONSOR "
         "WHERE DATE_FIN <= SYSDATE + 7 AND DATE_FIN >= SYSDATE - 30 "
-        "ORDER BY DATE_FIN"
-        );
+        "ORDER BY DATE_FIN";
 
-    if (success) {
-        while (query.next()) {
-            QMap<QString, QString> notif;
-            notif["id"] = query.value(0).toString();
-            notif["nom"] = query.value(1).toString();
-            notif["date_fin"] = query.value(2).toDate().toString("dd/MM/yyyy");
-            notif["type"] = query.value(3).toString();
+    qDebug() << "[NOTIFICATIONS] Executing query to get notifications...";
+    bool success = query.exec(sqlQuery);
 
-            notifications.append(notif);
-        }
+    if (!success) {
+        QSqlError error = query.lastError();
+        qWarning() << "[NOTIFICATIONS] SQL Error:" << error.text();
+        qWarning() << "[NOTIFICATIONS] Query:" << sqlQuery;
+        return notifications; // Return empty list on error
     }
 
+    int count = 0;
+    while (query.next()) {
+        QMap<QString, QString> notif;
+        notif["id"] = query.value(0).toString();
+        notif["nom"] = query.value(1).toString();
+        notif["date_fin"] = query.value(2).toDate().toString("dd/MM/yyyy");
+        notif["type"] = query.value(3).toString();
+
+        notifications.append(notif);
+        count++;
+        qDebug() << "[NOTIFICATIONS] Found notification:" << notif["nom"] << "Type:" << notif["type"] << "Date:" << notif["date_fin"];
+    }
+
+    qDebug() << "[NOTIFICATIONS] Total notifications retrieved:" << count;
     return notifications;
 }
 
 void SponsorManager::afficherFenetreNotifications(QWidget* parent)
 {
+    if (!parent) {
+        qWarning() << "[NOTIFICATIONS] ERROR: Parent widget is null!";
+        return;
+    }
+
+    qDebug() << "[NOTIFICATIONS] Opening notification dialog...";
+
     QDialog *dialog = new QDialog(parent);
     dialog->setWindowTitle("🔔 Notifications");
     dialog->setFixedSize(400, 500);
@@ -531,7 +645,9 @@ void SponsorManager::afficherFenetreNotifications(QWidget* parent)
     scrollLayout->setSpacing(10);
 
     // Récupérer les notifications
+    qDebug() << "[NOTIFICATIONS] Retrieving notifications from database...";
     QList<QMap<QString, QString>> notifications = getNotificationsDetail();
+    qDebug() << "[NOTIFICATIONS] Retrieved" << notifications.size() << "notifications";
 
     if (notifications.isEmpty()) {
         QLabel *noNotif = new QLabel("Aucune notification");

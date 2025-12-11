@@ -36,254 +36,123 @@ bool Sponsor::ajouter()
 {
     QSqlQuery query;
     QSqlDatabase db = QSqlDatabase::database();
-    qDebug() << "[Sponsor::ajouter] DB open:" << db.isOpen() << ", driver:" << db.driverName();
 
-    query.prepare("INSERT INTO ABIR.SPONSOR (ID_SPONSOR, NOM, TYPE, DETAILS, DATE_DEBUT, DATE_FIN, CONTACT) "
-                  "VALUES (:id, :nom, :type, :details, :dateDebut, :dateFin, :contact)");
+    query.prepare(
+        "INSERT INTO abir.SPONSOR "
+        "(ID_SPONSOR, NOM, CONTRIBUTION, DATE_DEBUT, EMAIL, DATE_FIN) "
+        "VALUES (:id, :nom, :contribution, TO_DATE(:dateDebut,'YYYY-MM-DD'), :email, TO_DATE(:dateFin,'YYYY-MM-DD'))"
+        );
 
-    qDebug() << "[Sponsor::ajouter] Parameters:"
-             << "id=" << id
-             << "nom=" << nom
-             << "contribution=" << contribution
-             << "dateDebut=" << dateDebut.toString("yyyy-MM-dd")
-             << "dateFin=" << dateFin.toString("yyyy-MM-dd")
-             << "email=" << email;
-
-    query.bindValue(":id", id);
+    query.bindValue(":id", id.toInt());
     query.bindValue(":nom", nom);
-    query.bindValue(":type", contribution);  // Map contribution to TYPE
-    query.bindValue(":details", "Sponsor details");  // Default details
-    query.bindValue(":dateDebut", dateDebut);
-    query.bindValue(":dateFin", dateFin);
-    query.bindValue(":contact", email);  // Map email to CONTACT
+    query.bindValue(":contribution", contribution);
+    query.bindValue(":dateDebut", dateDebut.toString("yyyy-MM-dd"));
+    query.bindValue(":dateFin", dateFin.toString("yyyy-MM-dd"));
+    query.bindValue(":email", email);
 
-    // Transaction - COMME PROJET
-    bool startedTx = false;
-    if (db.driver() && db.driver()->hasFeature(QSqlDriver::Transactions)) {
-        startedTx = db.transaction();
-        qDebug() << "[Sponsor::ajouter] Transaction started:" << startedTx;
-    }
-
-    bool ok = query.exec();
-    if (!ok) {
-        qWarning() << "[Sponsor::ajouter] Exec failed:" << query.lastError().text();
-        if (startedTx) db.rollback();
+    if (!query.exec()) {
+        qWarning() << "[Sponsor::ajouter] Erreur:" << query.lastError().text();
         return false;
-    }
-
-    qDebug() << "[Sponsor::ajouter] Exec success, rowsAffected=" << query.numRowsAffected();
-
-    if (startedTx) {
-        if (!db.commit()) {
-            qWarning() << "[Sponsor::ajouter] Commit failed:" << db.lastError().text();
-            return false;
-        }
-        qDebug() << "[Sponsor::ajouter] Commit success";
     }
 
     return true;
 }
 
+
 // ----------------- MODIFIER - COMME PROJET -----------------
 bool Sponsor::modifier()
 {
     QSqlQuery query;
-    QSqlDatabase db = QSqlDatabase::database();
-    qDebug() << "[Sponsor::modifier] DB open:" << db.isOpen() << ", ID:" << id;
 
-    query.prepare("UPDATE ABIR.SPONSOR SET NOM = :nom, TYPE = :type, DETAILS = :details, "
-                  "DATE_DEBUT = :dateDebut, DATE_FIN = :dateFin, CONTACT = :contact "
-                  "WHERE ID_SPONSOR = :id");
-
-    qDebug() << "[Sponsor::modifier] Parameters:"
-             << "id=" << id
-             << "nom=" << nom
-             << "contribution=" << contribution
-             << "dateDebut=" << dateDebut.toString("yyyy-MM-dd")
-             << "dateFin=" << dateFin.toString("yyyy-MM-dd")
-             << "email=" << email;
+    query.prepare(
+        "UPDATE abir.SPONSOR SET "
+        "NOM = :nom, "
+        "CONTRIBUTION = :contribution, "
+        "DATE_DEBUT = TO_DATE(:dateDebut,'YYYY-MM-DD'), "
+        "EMAIL = :email, "
+        "DATE_FIN = TO_DATE(:dateFin,'YYYY-MM-DD') "
+        "WHERE ID_SPONSOR = :id"
+        );
 
     query.bindValue(":nom", nom);
-    query.bindValue(":type", contribution);
-    query.bindValue(":details", "Updated sponsor details");
-    query.bindValue(":dateDebut", dateDebut);
-    query.bindValue(":dateFin", dateFin);
-    query.bindValue(":contact", email);
-    query.bindValue(":id", id);
+    query.bindValue(":contribution", contribution);
+    query.bindValue(":dateDebut", dateDebut.toString("yyyy-MM-dd"));
+    query.bindValue(":dateFin", dateFin.toString("yyyy-MM-dd"));
+    query.bindValue(":email", email);
+    query.bindValue(":id", id.toInt());
 
-    // Transaction - COMME PROJET
-    bool startedTx = false;
-    if (db.driver() && db.driver()->hasFeature(QSqlDriver::Transactions)) {
-        startedTx = db.transaction();
-        qDebug() << "[Sponsor::modifier] Transaction started:" << startedTx;
-    }
-
-    bool ok = query.exec();
-    if (!ok) {
-        qWarning() << "[Sponsor::modifier] Exec failed:" << query.lastError().text();
-        if (startedTx) db.rollback();
+    if (!query.exec()) {
+        qWarning() << "[Sponsor::modifier] Error:" << query.lastError().text();
         return false;
     }
 
-    int rowsAffected = query.numRowsAffected();
-    qDebug() << "[Sponsor::modifier] Exec success, rowsAffected=" << rowsAffected;
-
-    if (rowsAffected == 0) {
-        qWarning() << "[Sponsor::modifier] Aucune ligne modifiée";
-        if (startedTx) db.rollback();
-        return false;
-    }
-
-    if (startedTx) {
-        if (!db.commit()) {
-            qWarning() << "[Sponsor::modifier] Commit failed:" << db.lastError().text();
-            return false;
-        }
-        qDebug() << "[Sponsor::modifier] Commit success";
-    }
-
-    return true;
+    return query.numRowsAffected() > 0;
 }
 
 // ----------------- SUPPRIMER - COMME PROJET -----------------
 bool Sponsor::supprimer(QString id)
 {
     QSqlQuery query;
-    QSqlDatabase db = QSqlDatabase::database();
-    qDebug() << "[Sponsor::supprimer] DB open:" << db.isOpen() << ", ID:" << id;
 
-    // Vérifier existence - COMME PROJET
-    QSqlQuery checkQuery;
-    checkQuery.prepare("SELECT COUNT(1) FROM ABIR.SPONSOR WHERE ID_SPONSOR = :id");
-    checkQuery.bindValue(":id", id);
-    if (checkQuery.exec() && checkQuery.next()) {
-        if (checkQuery.value(0).toInt() == 0) {
-            qWarning() << "[Sponsor::supprimer] Sponsor avec ID" << id << "n'existe pas";
-            return false;
-        }
-    }
+    query.prepare("DELETE FROM abir.SPONSOR WHERE ID_SPONSOR = :id");
+    query.bindValue(":id", id.toInt());
 
-    // Transaction - C
-    bool startedTx = false;
-    if (db.driver() && db.driver()->hasFeature(QSqlDriver::Transactions)) {
-        startedTx = db.transaction();
-        qDebug() << "[Sponsor::supprimer] Transaction started:" << startedTx;
-    }
-
-    query.prepare("DELETE FROM ABIR.SPONSOR WHERE ID_SPONSOR = :id");
-    query.bindValue(":id", id);
-
-    bool ok = query.exec();
-    if (!ok) {
-        qWarning() << "[Sponsor::supprimer] Exec failed:" << query.lastError().text();
-        if (startedTx) db.rollback();
+    if (!query.exec()) {
+        qWarning() << "[Sponsor::supprimer] Error:" << query.lastError().text();
         return false;
     }
 
-    int rowsAffected = query.numRowsAffected();
-    qDebug() << "[Sponsor::supprimer] Exec success, rowsAffected=" << rowsAffected;
-
-    if (rowsAffected == 0) {
-        qWarning() << "[Sponsor::supprimer] Aucune ligne supprimée";
-        if (startedTx) db.rollback();
-        return false;
-    }
-
-    if (startedTx) {
-        if (!db.commit()) {
-            qWarning() << "[Sponsor::supprimer] Commit failed:" << db.lastError().text();
-            return false;
-        }
-        qDebug() << "[Sponsor::supprimer] Commit success";
-    }
-
-    return true;
+    return query.numRowsAffected() > 0;
 }
 
 // ----------------- AFFICHER TABLEAU - COMME PROJET -----------------
 void Sponsor::afficherDansTableau(QTableWidget* tableWidget)
 {
-    QSqlQuery query("SELECT ID_SPONSOR, NOM, TYPE, DETAILS, DATE_DEBUT, DATE_FIN, CONTACT FROM ABIR.SPONSOR ORDER BY ID_SPONSOR");
+    QSqlQuery query("SELECT ID_SPONSOR, NOM, CONTRIBUTION, DATE_DEBUT, DATE_FIN, EMAIL FROM abir.SPONSOR ORDER BY ID_SPONSOR");
 
     tableWidget->clear();
-    tableWidget->setRowCount(0);
-
-    // Configuration des colonnes
     QStringList headers = {"ID", "Nom", "Contribution", "Date Début", "Date Fin", "Email"};
+
     tableWidget->setColumnCount(headers.size());
     tableWidget->setHorizontalHeaderLabels(headers);
+    tableWidget->setRowCount(0);
 
-    // Remplissage des données
     int row = 0;
     while (query.next()) {
         tableWidget->insertRow(row);
 
-        // Map database columns to display columns
-        // DB: ID_SPONSOR, NOM, TYPE, DETAILS, DATE_DEBUT, DATE_FIN, CONTACT
-        // Display: ID, Nom, Contribution, Date Début, Date Fin, Email
-        
-        // ID (col 0) -> DB col 0
-        QTableWidgetItem* idItem = new QTableWidgetItem(query.value(0).toString());
-        idItem->setTextAlignment(Qt::AlignCenter);
-        idItem->setFlags(idItem->flags() & ~Qt::ItemIsEditable);
-        tableWidget->setItem(row, 0, idItem);
-        
-        // Nom (col 1) -> DB col 1  
-        QTableWidgetItem* nomItem = new QTableWidgetItem(query.value(1).toString());
-        nomItem->setTextAlignment(Qt::AlignCenter);
-        nomItem->setFlags(nomItem->flags() & ~Qt::ItemIsEditable);
-        tableWidget->setItem(row, 1, nomItem);
-        
-        // Contribution (col 2) -> DB col 2 (TYPE)
-        QTableWidgetItem* contribItem = new QTableWidgetItem(query.value(2).toString());
-        contribItem->setTextAlignment(Qt::AlignCenter);
-        contribItem->setFlags(contribItem->flags() & ~Qt::ItemIsEditable);
-        tableWidget->setItem(row, 2, contribItem);
-        
-        // Date Début (col 3) -> DB col 4 (DATE_DEBUT)
-        QDate dateDebut = query.value(4).toDate();
-        QString dateDebutText = dateDebut.isValid() ? dateDebut.toString("dd/MM/yyyy") : "";
-        QTableWidgetItem* dateDebutItem = new QTableWidgetItem(dateDebutText);
-        dateDebutItem->setTextAlignment(Qt::AlignCenter);
-        dateDebutItem->setFlags(dateDebutItem->flags() & ~Qt::ItemIsEditable);
-        tableWidget->setItem(row, 3, dateDebutItem);
-        
-        // Date Fin (col 4) -> DB col 5 (DATE_FIN)  
-        QDate dateFin = query.value(5).toDate();
-        QString dateFinText = dateFin.isValid() ? dateFin.toString("dd/MM/yyyy") : "";
-        QTableWidgetItem* dateFinItem = new QTableWidgetItem(dateFinText);
-        dateFinItem->setTextAlignment(Qt::AlignCenter);
-        dateFinItem->setFlags(dateFinItem->flags() & ~Qt::ItemIsEditable);
-        tableWidget->setItem(row, 4, dateFinItem);
-        
-        // Email (col 5) -> DB col 6 (CONTACT)
-        QTableWidgetItem* emailItem = new QTableWidgetItem(query.value(6).toString());
-        emailItem->setTextAlignment(Qt::AlignCenter);
-        emailItem->setFlags(emailItem->flags() & ~Qt::ItemIsEditable);
-        tableWidget->setItem(row, 5, emailItem);
-        
+        tableWidget->setItem(row, 0, new QTableWidgetItem(query.value(0).toString()));
+        tableWidget->setItem(row, 1, new QTableWidgetItem(query.value(1).toString()));
+        tableWidget->setItem(row, 2, new QTableWidgetItem(query.value(2).toString()));
+
+        // Date début
+        QDate dDeb = query.value(3).toDate();
+        tableWidget->setItem(row, 3, new QTableWidgetItem(dDeb.toString("dd/MM/yyyy")));
+
+        // Date fin
+        QDate dFin = query.value(4).toDate();
+        tableWidget->setItem(row, 4, new QTableWidgetItem(dFin.toString("dd/MM/yyyy")));
+
+        // Email
+        tableWidget->setItem(row, 5, new QTableWidgetItem(query.value(5).toString()));
+
         row++;
     }
 
-    // ▼▼▼▼▼ AJUSTEMENTS DE TAILLE SEULEMENT ▼▼▼▼▼
-
-    // Étirer les colonnes pour prendre toute la largeur
     tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-
-    // Ajuster la hauteur des lignes
-    tableWidget->verticalHeader()->setDefaultSectionSize(40);
-
-    // Garder toutes les lignes blanches
-    tableWidget->setAlternatingRowColors(false);
-
-    qDebug() << "[Sponsor::afficherDansTableau] Tableau rafraîchi:" << row << "lignes";
 }
+
+
+
+// ----------------- RECHERCHER PAR ID  -----------------
+
+
 // ----------------- RECHERCHER PAR ID  -----------------
 bool Sponsor::rechercherParId(QString id, QString& nom, QString& contribution,
                               QDate& dateDebut, QDate& dateFin, QString& email)
 {
     QSqlQuery query;
-    query.prepare("SELECT NOM, TYPE, DETAILS, DATE_DEBUT, DATE_FIN, CONTACT FROM ABIR.SPONSOR WHERE ID_SPONSOR = :id");
+    query.prepare("SELECT NOM, TYPE, DETAILS, DATE_DEBUT, DATE_FIN, CONTACT FROM abir.SPONSOR WHERE ID_SPONSOR = :id");
     query.bindValue(":id", id);
 
     if (query.exec() && query.next()) {
@@ -355,7 +224,7 @@ void Sponsor::rechercherParNom(QTableWidget* tableWidget, const QString& nomRech
     if (!tableWidget) return;
 
     QSqlQuery query;
-    query.prepare("SELECT ID_SPONSOR, NOM, TYPE, DETAILS, DATE_DEBUT, DATE_FIN, CONTACT FROM ABIR.SPONSOR "
+    query.prepare("SELECT ID_SPONSOR, NOM, TYPE, DETAILS, DATE_DEBUT, DATE_FIN, CONTACT FROM abir.SPONSOR "
                   "WHERE UPPER(NOM) LIKE UPPER(:nom) ORDER BY NOM");
     query.bindValue(":nom", "%" + nomRecherche + "%");
 

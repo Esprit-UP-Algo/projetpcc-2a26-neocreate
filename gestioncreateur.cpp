@@ -14,43 +14,36 @@
 GestionCreateur::GestionCreateur(Ui::MainWindow *ui_, QObject *parent)
     : QObject(parent), ui(ui_)
 {
-    ui->tab9->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->tab9->setSelectionMode(QAbstractItemView::SingleSelection);
-    ui->tab9->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
+    ui->tab9_2->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tab9_2->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->tab9_2->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
 
-    connect(ui->toolbuttajouter_2, &QToolButton::clicked, this, &GestionCreateur::ajouter);
-    connect(ui->toolbutsupp_2, &QToolButton::clicked, this, &GestionCreateur::supprimer);
-    connect(ui->toolbuttmodifier_2, &QToolButton::clicked, this, &GestionCreateur::modifier);
-    connect(ui->toolbuttrecherche_2, &QToolButton::clicked, this, &GestionCreateur::rechercher);
-    connect(ui->toolbutttrier_2, &QToolButton::clicked, this, &GestionCreateur::trier);
-    connect(ui->toolButtonexporter, &QToolButton::clicked, this, &GestionCreateur::exporterPdf);
-    connect(ui->toolButtonPredire, &QToolButton::clicked, this, &GestionCreateur::predire);
+    connect(ui->toolbuttajouter_3, &QToolButton::clicked, this, &GestionCreateur::ajouter);
+    connect(ui->toolbutsupp_3, &QToolButton::clicked, this, &GestionCreateur::supprimer);
+    connect(ui->toolbuttmodifier_3, &QToolButton::clicked, this, &GestionCreateur::modifier);
+    connect(ui->toolbuttrecherche_3, &QToolButton::clicked, this, &GestionCreateur::rechercher);
+    connect(ui->toolbutttrier_3, &QToolButton::clicked, this, &GestionCreateur::trier);
+    connect(ui->toolButtonexporter_2, &QToolButton::clicked, this, &GestionCreateur::exporterPdf);
+    connect(ui->toolButtonPredire_2, &QToolButton::clicked, this, &GestionCreateur::predire);
     connect(ui->toolButtonStats_2, &QToolButton::clicked, this, &GestionCreateur::statistiques);
+    connect(ui->toolButtonDominante_2, &QToolButton::clicked, this, &GestionCreateur::plateformeDominante);
 
-
-    // Ne pas appeler predireDepuisTable au clic ! → éviter popup automatique
-    // connect(ui->tab9, &QTableWidget::cellClicked, this, &GestionCreateur::predireDepuisTable);
-
-    connect(ui->tab9, &QTableWidget::cellChanged, this, &GestionCreateur::onCellChanged);
+    connect(ui->tab9_2, &QTableWidget::cellChanged, this, &GestionCreateur::onCellChanged);
 
     afficher();
 }
 
 GestionCreateur::~GestionCreateur() {}
 
-
-// ============================================================
-// AJOUTER
-// ============================================================
 void GestionCreateur::ajouter()
 {
-    QString id = ui->lineid_2->text().trimmed();
-    QString nom = ui->linenom_2->text().trimmed();
-    QString prenom = ui->lineprenom_2->text().trimmed();
-    QString pseudo = ui->linepseudo_2->text().trimmed();
-    QString telephone = ui->linetelephone_2->text().trimmed();
-    QString plat = ui->comboBoxplat->currentText().trimmed();
-    QString email = ui->lineemail_2->text().trimmed();
+    QString id = ui->lineid_3->text().trimmed();
+    QString nom = ui->linenom_3->text().trimmed();
+    QString prenom = ui->lineprenom_3->text().trimmed();
+    QString pseudo = ui->linepseudo_3->text().trimmed();
+    QString telephone = ui->linetelephone_3->text().trimmed();
+    QString plat = ui->comboBoxplat_2->currentText().trimmed();
+    QString email = ui->lineemail_3->text().trimmed();
 
     if (id.isEmpty() || nom.isEmpty() || prenom.isEmpty()) {
         QMessageBox::warning(nullptr, "Champs obligatoires",
@@ -58,7 +51,6 @@ void GestionCreateur::ajouter()
         return;
     }
 
-    // Génération automatique d'abonnés
     int abonnes = 0;
     QString lowPlat = plat.toLower();
 
@@ -94,22 +86,37 @@ void GestionCreateur::ajouter()
 
     QMessageBox::information(nullptr, "Succès", "Créateur ajouté.");
     afficher();
+
+    QString pythonExe = "C:/Users/moham/AppData/Local/Python/pythoncore-3.14-64/python.exe";
+    QString scriptMail = "C:/Users/moham/projetiwen/send_mail.py";
+
+    QProcess mailProcess;
+    mailProcess.setProcessChannelMode(QProcess::MergedChannels);
+    mailProcess.start(
+        pythonExe,
+        QStringList() << scriptMail << nom << prenom << plat
+        );
+
+    mailProcess.waitForFinished();
+
+    QString mailOutput = QString::fromLocal8Bit(mailProcess.readAll()).trimmed();
+
+    if (mailOutput.contains("OK"))
+        QMessageBox::information(nullptr, "Email", "Notification envoyée !");
+    else
+        QMessageBox::warning(nullptr, "Email", "Échec d'envoi : " + mailOutput);
 }
 
-
-// ============================================================
-// SUPPRIMER
-// ============================================================
 void GestionCreateur::supprimer()
 {
-    int row = ui->tab9->currentRow();
+    int row = ui->tab9_2->currentRow();
 
     if (row < 0) {
         QMessageBox::warning(nullptr, "Suppression", "Veuillez sélectionner une ligne à supprimer.");
         return;
     }
 
-    QString id = ui->tab9->item(row, 0)->text();
+    QString id = ui->tab9_2->item(row, 0)->text();
 
     if (QMessageBox::question(nullptr, "Confirmation",
                               "Supprimer ce créateur (ID : " + id + ") ?")
@@ -127,27 +134,19 @@ void GestionCreateur::supprimer()
         return;
     }
 
-    ui->tab9->removeRow(row);
+    ui->tab9_2->removeRow(row);
     QMessageBox::information(nullptr, "Succès", "Créateur supprimé !");
 }
 
-
-// ============================================================
-// MODIFIER
-// ============================================================
 void GestionCreateur::modifier()
 {
     QMessageBox::information(nullptr, "Modification",
                              "Modifiez directement dans le tableau.");
 }
 
-
-// ============================================================
-// RECHERCHER
-// ============================================================
 void GestionCreateur::rechercher()
 {
-    QString crit = ui->linerech_2->text().trimmed();
+    QString crit = ui->linerech_3->text().trimmed();
     QSqlQuery q;
 
     bool isNumber = false;
@@ -175,13 +174,9 @@ void GestionCreateur::rechercher()
     remplirTableAvecQuery(q);
 }
 
-
-// ============================================================
-// TRIER
-// ============================================================
 void GestionCreateur::trier()
 {
-    QString choix = ui->linetrie->currentText();
+    QString choix = ui->linetrie_2->currentText();
     QString colonne;
 
     if (choix == "Id")
@@ -206,46 +201,52 @@ void GestionCreateur::trier()
     remplirTableAvecQuery(query);
 }
 
-
-// ============================================================
-// REMPLIR TABLE
-// ============================================================
 void GestionCreateur::remplirTableAvecQuery(QSqlQuery &q)
 {
-    ui->tab9->blockSignals(true);
-    ui->tab9->setRowCount(0);
+    ui->tab9_2->blockSignals(true);
+    ui->tab9_2->setRowCount(0);
 
     int row = 0;
     while (q.next()) {
-        ui->tab9->insertRow(row);
-        for (int c = 0; c < 8; c++) // 8 colonnes maintenant
-            ui->tab9->setItem(row, c, new QTableWidgetItem(q.value(c).toString()));
+        ui->tab9_2->insertRow(row);
+        for (int c = 0; c < 8; c++)
+            ui->tab9_2->setItem(row, c, new QTableWidgetItem(q.value(c).toString()));
         row++;
     }
 
-    ui->tab9->blockSignals(false);
+    ui->tab9_2->blockSignals(false);
 }
 
-
-// ============================================================
-// EDIT CELL
-// ============================================================
 void GestionCreateur::onCellChanged(int row, int column)
 {
+    if (ui->tab9_2->signalsBlocked())
+        return;
+
     if (column == 0) {
         QMessageBox::warning(nullptr, "Erreur", "ID non modifiable.");
         afficher();
         return;
     }
 
-    QString id = ui->tab9->item(row, 0)->text();
-    QString nom = ui->tab9->item(row, 1)->text();
-    QString prenom = ui->tab9->item(row, 2)->text();
-    QString email = ui->tab9->item(row, 3)->text();
-    QString pseudo = ui->tab9->item(row, 4)->text();
-    QString telephone = ui->tab9->item(row, 5)->text();
-    QString reseau = ui->tab9->item(row, 6)->text();
-    QString abonnes = ui->tab9->item(row, 7)->text();
+    if (row < 0 || row >= ui->tab9_2->rowCount())
+        return;
+
+    auto safeGet = [&](int col) -> QString {
+        QTableWidgetItem *item = ui->tab9_2->item(row, col);
+        return item ? item->text().trimmed() : "";
+    };
+
+    QString id       = safeGet(0);
+    QString nom      = safeGet(1);
+    QString prenom   = safeGet(2);
+    QString email    = safeGet(3);
+    QString pseudo   = safeGet(4);
+    QString telephone= safeGet(5);
+    QString reseau   = safeGet(6);
+    QString abonnes  = safeGet(7);
+
+    if (id.isEmpty())
+        return;
 
     QSqlQuery q;
     q.prepare("UPDATE CREATEUR SET NOM=:n, PRENOM=:p, EMAIL=:email, "
@@ -263,26 +264,24 @@ void GestionCreateur::onCellChanged(int row, int column)
 
     if (!q.exec()) {
         QMessageBox::critical(nullptr, "Erreur SQL", q.lastError().text());
+        ui->tab9_2->blockSignals(true);
         afficher();
+        ui->tab9_2->blockSignals(false);
     }
 }
 
-
-// ============================================================
-// EXPORT PDF
-// ============================================================
 QString GestionCreateur::tableToHtml()
 {
     QString html = "<h2>Liste des Créateurs</h2><table border=1 cellspacing=0 cellpadding=4>";
     html += "<tr>";
-    for (int c = 0; c < ui->tab9->columnCount(); c++)
-        html += "<th>" + ui->tab9->horizontalHeaderItem(c)->text() + "</th>";
+    for (int c = 0; c < ui->tab9_2->columnCount(); c++)
+        html += "<th>" + ui->tab9_2->horizontalHeaderItem(c)->text() + "</th>";
     html += "</tr>";
 
-    for (int r = 0; r < ui->tab9->rowCount(); r++) {
+    for (int r = 0; r < ui->tab9_2->rowCount(); r++) {
         html += "<tr>";
-        for (int c = 0; c < ui->tab9->columnCount(); c++)
-            html += "<td>" + ui->tab9->item(r, c)->text() + "</td>";
+        for (int c = 0; c < ui->tab9_2->columnCount(); c++)
+            html += "<td>" + ui->tab9_2->item(r, c)->text() + "</td>";
         html += "</tr>";
     }
     html += "</table>";
@@ -306,23 +305,15 @@ void GestionCreateur::exporterPdf()
     QMessageBox::information(nullptr, "PDF", "PDF exporté avec succès.");
 }
 
-
-// ============================================================
-// AFFICHER
-// ============================================================
 void GestionCreateur::afficher()
 {
     QSqlQuery q("SELECT * FROM CREATEUR");
     remplirTableAvecQuery(q);
 }
 
-
-// ============================================================
-// PREDIRE avec bouton
-// ============================================================
 void GestionCreateur::predire()
 {
-    int row = ui->tab9->currentRow();
+    int row = ui->tab9_2->currentRow();
 
     if (row < 0) {
         QMessageBox::warning(nullptr, "Erreur",
@@ -330,7 +321,7 @@ void GestionCreateur::predire()
         return;
     }
 
-    QString platform = ui->tab9->item(row, 6)->text().trimmed(); // colonne RESEAU
+    QString platform = ui->tab9_2->item(row, 6)->text().trimmed();
 
     if (platform.isEmpty()) {
         QMessageBox::warning(nullptr, "Erreur",
@@ -361,16 +352,13 @@ void GestionCreateur::predire()
     QMessageBox::information(nullptr, "Prédiction",
                              "Meilleur moment pour publier sur " + platform + " : " + output + "h");
 }
-// ============================================================
-// STATISTIQUES
-// ============================================================
+
 void GestionCreateur::statistiques()
 {
-    // 1) Lire les données depuis la BD
     QSqlQuery q("SELECT RESEAU, SUM(ABONNES) FROM CREATEUR GROUP BY RESEAU");
 
-    QStringList categories;   // X axis
-    QBarSet *barset = new QBarSet("Abonnés"); // Y values
+    QStringList categories;
+    QBarSet *barset = new QBarSet("Abonnés");
 
     while (q.next())
     {
@@ -384,38 +372,32 @@ void GestionCreateur::statistiques()
         *barset << abonnes;
     }
 
-    // 2) Série
     QBarSeries *series = new QBarSeries();
     series->append(barset);
 
-    // 3) Création du graphique
     QChart *chart = new QChart();
     chart->addSeries(series);
     chart->setTitle("Nombre d'abonnés par plateforme");
     chart->setAnimationOptions(QChart::SeriesAnimations);
 
-    // 4) Axe X (catégories)
     QBarCategoryAxis *axisX = new QBarCategoryAxis();
     axisX->append(categories);
     chart->addAxis(axisX, Qt::AlignBottom);
     series->attachAxis(axisX);
 
-    // 5) Axe Y (valeurs)
     QValueAxis *axisY = new QValueAxis();
     axisY->setTitleText("Abonnés");
     chart->addAxis(axisY, Qt::AlignLeft);
     series->attachAxis(axisY);
 
-    // 6) Affichage dans le widget UI
     QChartView *view = new QChartView(chart);
     view->setRenderHint(QPainter::Antialiasing);
 
-    // Nettoyer ancien contenu
-    QLayout *layout = ui->chartWidget->layout();
+    QLayout *layout = ui->chartWidget_2->layout();
     if (!layout)
     {
-        layout = new QVBoxLayout(ui->chartWidget);
-        ui->chartWidget->setLayout(layout);
+        layout = new QVBoxLayout(ui->chartWidget_2);
+        ui->chartWidget_2->setLayout(layout);
     }
 
     QLayoutItem *child;
@@ -426,4 +408,40 @@ void GestionCreateur::statistiques()
     }
 
     layout->addWidget(view);
+}
+
+void GestionCreateur::plateformeDominante()
+{
+    QSqlQuery q("SELECT RESEAU, SUM(ABONNES) FROM CREATEUR GROUP BY RESEAU");
+
+    QString bestPlatform = "";
+    int bestValue = -1;
+
+    QString results = "Totaux par plateforme :\n\n";
+
+    while (q.next()) {
+        QString reseau = q.value(0).toString();
+        int total = q.value(1).toInt();
+
+        results += QString("%1 : %2 abonnés\n").arg(reseau).arg(total);
+
+        if (total > bestValue) {
+            bestValue = total;
+            bestPlatform = reseau;
+        }
+    }
+
+    if (bestPlatform.isEmpty()) {
+        QMessageBox::warning(nullptr, "Statistique", "Aucune donnée disponible.");
+        return;
+    }
+
+    QMessageBox::information(
+        nullptr,
+        "Plateforme dominante",
+        QString("Plateforme la plus populaire :\n\n👉 %1 (%2 abonnés)\n\n\n%3")
+            .arg(bestPlatform)
+            .arg(bestValue)
+            .arg(results)
+        );
 }

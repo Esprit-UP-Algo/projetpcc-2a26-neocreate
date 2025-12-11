@@ -35,10 +35,10 @@ bool Projet::AjouterProjet()
 
     QString sql;
     if (id_client > 0) {
-        sql = "INSERT INTO ABIR.PROJET (ID_PROJET, TYPE, DATE_D, DATE_F, MONTANT, PAIMENT, MATRIEL, ID_CLIENT) "
+        sql = "INSERT INTO abir.PROJET (ID_PROJET, TYPE, DATE_D, DATE_F, MONTANT, PAIMENT, MATRIEL, ID_CLIENT) "
               "VALUES (:id, :type, :date_d, :date_f, :montant, :paiment, :note_materiel, :id_client)";
     } else {
-        sql = "INSERT INTO ABIR.PROJET (ID_PROJET, TYPE, DATE_D, DATE_F, MONTANT, PAIMENT, MATRIEL) "
+        sql = "INSERT INTO abir.PROJET (ID_PROJET, TYPE, DATE_D, DATE_F, MONTANT, PAIMENT, MATRIEL) "
               "VALUES (:id, :type, :date_d, :date_f, :montant, :paiment, :note_materiel)";
     }
 
@@ -69,7 +69,7 @@ QSqlQueryModel* Projet::AfficherProjets()
     QSqlQueryModel *model = new QSqlQueryModel();
     model->setQuery(
         "SELECT ID_PROJET, TYPE, TO_CHAR(DATE_D, 'YYYY-MM-DD') AS DATE_D, "
-        "TO_CHAR(DATE_F, 'YYYY-MM-DD') AS DATE_F, MONTANT, PAIMENT, MATRIEL, ID_CLIENT FROM ABIR.PROJET"
+        "TO_CHAR(DATE_F, 'YYYY-MM-DD') AS DATE_F, MONTANT, PAIMENT, MATRIEL, ID_CLIENT FROM abir.PROJET"
         );
 
     model->setHeaderData(0, Qt::Horizontal, QObject::tr("ID_PROJET"));
@@ -88,7 +88,7 @@ QSqlQueryModel* Projet::AfficherProjetsTriés(const QString &sortBy)
 {
     QSqlQueryModel *model = new QSqlQueryModel();
     QString query = "SELECT ID_PROJET, TYPE, TO_CHAR(DATE_D, 'YYYY-MM-DD') AS DATE_D, "
-                    "TO_CHAR(DATE_F, 'YYYY-MM-DD') AS DATE_F, MONTANT, PAIMENT, MATRIEL, ID_CLIENT FROM ABIR.PROJET ";
+                    "TO_CHAR(DATE_F, 'YYYY-MM-DD') AS DATE_F, MONTANT, PAIMENT, MATRIEL, ID_CLIENT FROM abir.PROJET ";
 
     if (sortBy == "Date début (asc)" || sortBy == "Date début") {
         query += "ORDER BY DATE_D ASC";
@@ -124,7 +124,7 @@ QSqlQueryModel* Projet::ChercherProjetParId(int id)
 {
     QSqlQueryModel *model = new QSqlQueryModel();
     QString query = "SELECT ID_PROJET, TYPE, TO_CHAR(DATE_D, 'YYYY-MM-DD') AS DATE_D, "
-                    "TO_CHAR(DATE_F, 'YYYY-MM-DD') AS DATE_F, MONTANT, PAIMENT, MATRIEL, ID_CLIENT FROM ABIR.PROJET "
+                    "TO_CHAR(DATE_F, 'YYYY-MM-DD') AS DATE_F, MONTANT, PAIMENT, MATRIEL, ID_CLIENT FROM abir.PROJET "
                     "WHERE ID_PROJET = " + QString::number(id);
 
     model->setQuery(query);
@@ -145,7 +145,7 @@ QSqlQueryModel* Projet::ChercherProjetParIdStatique(int id)
 {
     QSqlQueryModel *model = new QSqlQueryModel();
     QString query = "SELECT ID_PROJET, TYPE, TO_CHAR(DATE_D, 'YYYY-MM-DD') AS DATE_D, "
-                    "TO_CHAR(DATE_F, 'YYYY-MM-DD') AS DATE_F, MONTANT, PAIMENT, MATRIEL, ID_CLIENT FROM ABIR.PROJET "
+                    "TO_CHAR(DATE_F, 'YYYY-MM-DD') AS DATE_F, MONTANT, PAIMENT, MATRIEL, ID_CLIENT FROM abir.PROJET "
                     "WHERE ID_PROJET = " + QString::number(id);
 
     model->setQuery(query);
@@ -170,7 +170,7 @@ QSqlQueryModel* Projet::ChercherProjetParTypeStatique(const QString &type)
     t.replace("'", "''");
     // Case-insensitive match
     QString query = "SELECT ID_PROJET, TYPE, TO_CHAR(DATE_D, 'YYYY-MM-DD') AS DATE_D, "
-                    "TO_CHAR(DATE_F, 'YYYY-MM-DD') AS DATE_F, MONTANT, PAIMENT, ID_CLIENT FROM ABIR.PROJET "
+                    "TO_CHAR(DATE_F, 'YYYY-MM-DD') AS DATE_F, MONTANT, PAIMENT, ID_CLIENT FROM abir.PROJET "
                     "WHERE UPPER(TYPE) = UPPER('" + t + "')";
 
     model->setQuery(query);
@@ -200,9 +200,9 @@ bool Projet::ModifierProjet()
 
     QString sql;
     if (id_client > 0) {
-        sql = "UPDATE ABIR.PROJET SET TYPE = :type, DATE_D = :date_d, DATE_F = :date_f, MONTANT = :montant, PAIMENT = :paiment, MATRIEL = :note_materiel, ID_CLIENT = :id_client WHERE ID_PROJET = :id";
+        sql = "UPDATE abir.PROJET SET TYPE = :type, DATE_D = :date_d, DATE_F = :date_f, MONTANT = :montant, PAIMENT = :paiment, MATRIEL = :note_materiel, ID_CLIENT = :id_client WHERE ID_PROJET = :id";
     } else {
-        sql = "UPDATE ABIR.PROJET SET TYPE = :type, DATE_D = :date_d, DATE_F = :date_f, MONTANT = :montant, PAIMENT = :paiment, MATRIEL = :note_materiel, ID_CLIENT = NULL WHERE ID_PROJET = :id";
+        sql = "UPDATE abir.PROJET SET TYPE = :type, DATE_D = :date_d, DATE_F = :date_f, MONTANT = :montant, PAIMENT = :paiment, MATRIEL = :note_materiel, ID_CLIENT = NULL WHERE ID_PROJET = :id";
     }
     query.prepare(sql);
 
@@ -230,7 +230,7 @@ bool Projet::SupprimerProjet(int id)
 {
     QSqlQuery query;
 
-    query.prepare("DELETE FROM ABIR.PROJET WHERE ID_PROJET = :id");
+    query.prepare("DELETE FROM abir.PROJET WHERE ID_PROJET = :id");
     query.bindValue(":id", id);
 
     bool success = query.exec();
@@ -258,7 +258,7 @@ double Projet::TotalMontant()
 {
     QSqlQuery q;
     // Use COALESCE to normalize NULL to 0 (works in Oracle/other DBs)
-    if (q.exec("SELECT COALESCE(SUM(MONTANT),0) FROM ABIR.PROJET") && q.next()) {
+    if (q.exec("SELECT COALESCE(SUM(MONTANT),0) FROM abir.PROJET") && q.next()) {
         return q.value(0).toDouble();
     }
     return 0.0;
@@ -267,7 +267,7 @@ double Projet::TotalMontant()
 double Projet::AverageMontant()
 {
     QSqlQuery q;
-    if (q.exec("SELECT COALESCE(AVG(MONTANT),0) FROM ABIR.PROJET") && q.next()) {
+    if (q.exec("SELECT COALESCE(AVG(MONTANT),0) FROM abir.PROJET") && q.next()) {
         return q.value(0).toDouble();
     }
     return 0.0;
@@ -277,7 +277,7 @@ QVector<QPair<QString,int>> Projet::CountsByType()
 {
     QVector<QPair<QString,int>> out;
     QSqlQuery q;
-    if (!q.exec("SELECT TYPE, COUNT(*) FROM ABIR.PROJET GROUP BY TYPE")) {
+    if (!q.exec("SELECT TYPE, COUNT(*) FROM abir.PROJET GROUP BY TYPE")) {
         qDebug() << "[CountsByType] Query failed:" << q.lastError().text();
         return out;
     }
@@ -295,7 +295,7 @@ QVector<QPair<QString,double>> Projet::MontantByPaiment()
     QSqlQuery q;
     // Group sums by PAIMENT (payment method)
     // Use TRIM(PAIMENT) so values like 'virement ' are treated the same as 'virement'
-    if (!q.exec("SELECT TRIM(PAIMENT), COALESCE(SUM(MONTANT),0) FROM ABIR.PROJET GROUP BY TRIM(PAIMENT)")) {
+    if (!q.exec("SELECT TRIM(PAIMENT), COALESCE(SUM(MONTANT),0) FROM abir.PROJET GROUP BY TRIM(PAIMENT)")) {
         qDebug() << "[MontantByPaiment] Query failed:" << q.lastError().text();
         return out;
     }
@@ -312,7 +312,7 @@ QVector<QPair<QString,int>> Projet::CountsByPaiment()
     QVector<QPair<QString,int>> out;
     QSqlQuery q;
     // Group counts by trimmed PAIMENT to normalize values with trailing spaces
-    if (!q.exec("SELECT TRIM(PAIMENT), COUNT(*) FROM ABIR.PROJET GROUP BY TRIM(PAIMENT)")) {
+    if (!q.exec("SELECT TRIM(PAIMENT), COUNT(*) FROM abir.PROJET GROUP BY TRIM(PAIMENT)")) {
         qDebug() << "[CountsByPaiment] Query failed:" << q.lastError().text();
         return out;
     }

@@ -1,0 +1,77 @@
+void MainWindow::onArduinoColorDetected(int red, int green, int blue)
+{
+    qDebug() << "[ARDUINO RGB DETECTED]" << red << green << blue;
+
+    // Detect which material this color represents
+    ColorMatch match = ColorSensorHandler::detectMaterial(red, green, blue);
+
+    if (match.materielType == "Unknown") {
+        QMessageBox::warning(this, "Matériel Invalide",
+            "Couleur non reconnue. Veuillez passer un matériel valide.\n"
+            "Couleurs valides: Rouge (Casques), Vert (Caméra), Bleu (Micros podcast), Jaune (Webcam)");
+        return;
+    }
+
+    qDebug() << "[COLOR MATCH]" << match.materielType << "Distance:" << match.distance;
+
+    // Check if material exists in database and get its current quantity
+    QSqlQuery query;
+    query.prepare("SELECT ID_MATERIEL, QTE FROM ABIR.MATERIEL WHERE TYPE = :type ORDER BY ID_MATERIEL LIMIT 1");
+    query.addBindValue(match.materielType);
+
+    if (!query.exec()) {
+        qWarning() << "[DB ERROR]" << query.lastError().text();
+        QMessageBox::critical(this, "Erreur Base de Données",
+            "Impossible de vérifier le matériel dans la base.");
+        return;
+    }
+
+    if (!query.next()) {
+        QMessageBox::information(this, "Matériel",
+            QString("Aucun matériel du type '%1' trouvé dans la base.").arg(match.materielType));
+        return;
+    }
+
+    int materielId = query.value(0).toInt();
+    int currentQte = query.value(1).toInt();
+
+    qDebug() << "[MATERIEL FOUND]" << "ID:" << materielId << "QTE:" << currentQte;
+
+    // Check if quantity limit reached (max 4)
+    const int MAX_QUANTITY = 4;
+    if (currentQte >= MAX_QUANTITY) {
+        QMessageBox::warning(this, "Limite Atteinte",
+            QString("Vous avez atteint la limite de %1 pour '%2'.\n"
+                    "Quantité actuelle: %3").arg(MAX_QUANTITY).arg(match.materielType).arg(currentQte));
+        return;
+    }
+
+    // Increment quantity in database
+    QSqlQuery updateQuery;
+    updateQuery.prepare("UPDATE ABIR.MATERIEL SET QTE = QTE + 1 WHERE ID_MATERIEL = :id");
+    updateQuery.addBindValue(materielId);
+
+    if (!updateQuery.exec()) {
+        qWarning() << "[DB UPDATE ERROR]" << updateQuery.lastError().text();
+        QMessageBox::critical(this, "Erreur",
+            "Impossible de mettre à jour la quantité.");
+        return;
+    }
+
+    int newQte = currentQte + 1;
+
+    // Show success message
+    QMessageBox::information(this, "Matériel Ajouté",
+        QString("✓ %1 détecté!\n\n"
+                "Couleur: %2\n"
+                "Nouvelle quantité: %3 / %4")
+        .arg(match.materielType)
+        .arg(match.colorName)
+        .arg(newQte)
+        .arg(MAX_QUANTITY));
+
+    qDebug() << "[MATERIEL UPDATED]" << match.materielType << "NEW QTE:" << newQte;
+
+    // Refresh the materiel grid to show updated quantity
+    refreshMaterielGrid();
+}

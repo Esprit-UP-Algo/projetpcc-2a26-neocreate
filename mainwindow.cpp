@@ -45,6 +45,7 @@
 #include <QMessageBox>
 #include <QDateTime>
 #include <QTimer>
+#include <QThread>
 #include <QDir>
 #include <QScrollArea>
 #include <QProgressBar>
@@ -52,6 +53,7 @@
 #include <QFileDialog>
 #include <QDateTime>
 #include <QTimer>
+#include <QThread>
 #include <QDir>
 #include <QScrollArea>
 #include <QProgressBar>
@@ -97,21 +99,56 @@
 #include <QtCharts/QChartView>
 #include <QtCharts/QPieSeries>
 #include <QtCharts/QChart>
+#include <arduino.h>
 
 // =====================
 //  CONSTRUCTEUR
 // =====================
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow), sponsorManager(nullptr), currentSponsorId("")
+    : QMainWindow(parent), ui(new Ui::MainWindow), sponsorManager(nullptr), currentSponsorId(""), m_motionDetectionProcessed(false)
 {
+    arduino = new QSerialPort(this);
+
+    // Adjust port name to match your Arduino COM port
+    arduino->setPortName("COM5");
+    arduino->setBaudRate(QSerialPort::Baud9600);
+    arduino->setDataBits(QSerialPort::Data8);
+    arduino->setParity(QSerialPort::NoParity);
+    arduino->setStopBits(QSerialPort::OneStop);
+    arduino->setFlowControl(QSerialPort::NoFlowControl);
+
+    if (arduino->open(QIODevice::ReadWrite)) {
+        connect(arduino, &QSerialPort::readyRead, this, &MainWindow::handleSerial);
+        qDebug() << "✅ Arduino connected in ReadWrite mode!";
+    } else {
+        qDebug() << "❌ Failed to open port:" << arduino->errorString();
+    }
+
+
     ui->setupUi(this);
     this->showMaximized();
-    ClientHistory::setListWidget(ui->ClientHistoryList);  // nom de ta QListWidget
-    ClientHistory::loadHistory();                         // pour charger l'historique du fichier
-    sponsorManager = new SponsorManager(this);
+
+    if (auto historyList = qobject_cast<QListWidget*>(ui->ClientHistoryList)) {
+        ClientHistory::setListWidget(historyList);
+        ClientHistory::loadHistory();
+    } else {
+        qWarning() << "ClientHistoryList is not a QListWidget in UI; history disabled";
+    }
+
+    // Initialize creator management
     GestionCreateur *gestionCreateur = new GestionCreateur(ui, this);
+    Q_UNUSED(gestionCreateur); // Mark as intentionally unused to avoid warning
 
     ui->groupBox_2->setStyleSheet(AppDesign::navigationPanelStyle());
+    Arduino = new ArduinoManager(this);
+
+    if (!Arduino->connectArduino("COM6")) {
+        QMessageBox::critical(this, "Arduino Error",
+                              "Unable to connect to Arduino on COM6.");
+    }
+
+    connect(Arduino, &ArduinoManager::idReceived,
+            this, &MainWindow::onIdReceived);
 
 
     // 2. Collecter les boutons de navigation
@@ -130,7 +167,7 @@ MainWindow::MainWindow(QWidget *parent)
     // 3. Appliquer le style à TOUTES les pages
 
 
-     // Table sponsor
+    // Table sponsor
     // ===== PARTIE 2 : LE RESTE DE TON CODE EXISTANT =====
 
 
@@ -186,11 +223,25 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->toolButton_26, &QToolButton::clicked, this, &MainWindow::on_toolButton_26_clicked);
 
     // Connexion des boutons CRUD MATERIEL
+    connect(ui->btnDetectColor, &QToolButton::clicked, this, &MainWindow::onDetectMaterielButtonClicked);
     connect(ui->toolButton_31, &QToolButton::clicked, this, &MainWindow::on_toolButton_31_clicked);
     connect(ui->toolButton_33, &QToolButton::clicked, this, &MainWindow::on_toolButton_33_clicked);
     connect(ui->toolButton_34, &QToolButton::clicked, this, &MainWindow::on_toolButton_34_clicked);
     connect(ui->toolButton_35, &QToolButton::clicked, this, &MainWindow::on_toolButton_35_clicked);
     connect(ui->toolButton_36, &QToolButton::clicked, this, &MainWindow::on_toolButton_36_clicked);
+
+
+
+
+    connect(ui->toolbuttajouter_2,      &QToolButton::clicked, gestionCreateur, &GestionCreateur::ajouter);
+    connect(ui->toolbutsupp_2,          &QToolButton::clicked, gestionCreateur, &GestionCreateur::supprimer);
+    connect(ui->toolbuttmodifier_2,     &QToolButton::clicked, gestionCreateur, &GestionCreateur::modifier);
+    connect(ui->toolbuttrecherche_2,    &QToolButton::clicked, gestionCreateur, &GestionCreateur::rechercher);
+    connect(ui->toolbutttrier_2,        &QToolButton::clicked, gestionCreateur, &GestionCreateur::trier);
+    connect(ui->toolButtonexporter,     &QToolButton::clicked, gestionCreateur, &GestionCreateur::exporterPdf);
+    //connect(ui->toolButtonPredire,      &QToolButton::clicked, gestionCreateur, &GestionCreateur::predire);
+    //connect(ui->toolButtonStats_2,      &QToolButton::clicked, gestionCreateur, &GestionCreateur::statistiques);
+    //connect(ui->toolButtonDominante,    &QToolButton::clicked, gestionCreateur, &GestionCreateur::plateformeDominante);
 
     // Connexion for project statistics refresh button (added after UI is setup)
     QPushButton* refreshBtn = this->findChild<QPushButton*>("btn_refresh_stats");
@@ -203,7 +254,7 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::on_comboBox_4_currentTextChanged);
 
     // Connexion des boutons CRUD SPONSOR
-   connect(ui->AjouterSponsor, &QPushButton::clicked, this, &MainWindow::on_AjouterSponsor_clicked);
+    connect(ui->AjouterSponsor, &QPushButton::clicked, this, &MainWindow::on_AjouterSponsor_clicked);
     // ========== CONNECTIONS SPONSOR - AJOUTER CES LIGNES ==========
     // Connexion du bouton Modifier
     connect(ui->ModifierSponsor, &QPushButton::clicked, this, &MainWindow::on_ModifierSponsor_clicked);
@@ -238,6 +289,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->combobox_contribution->addItems({"Services", "Matériels", "Autre"});
 
     // ========== SYSTÈME DE NOTIFICATION ==========
+    // IMPORTANT: Initialize sponsorManager BEFORE using it in button click handler
+    sponsorManager = new SponsorManager(this);
+
     QToolButton *btnNotification = new QToolButton(this);
     btnNotification->setText("🔔"); // ← ENLEVER L'ESPACE
     btnNotification->setToolButtonStyle(Qt::ToolButtonIconOnly); // ← ICÔNE SEULEMENT
@@ -272,7 +326,13 @@ MainWindow::MainWindow(QWidget *parent)
     badge->setVisible(false);
 
     connect(btnNotification, &QToolButton::clicked, this, [this]() {
-        sponsorManager->afficherFenetreNotifications(this);
+        if (sponsorManager) {
+            qDebug() << "[NOTIFICATIONS] Opening notification inbox...";
+            sponsorManager->afficherFenetreNotifications(this);
+        } else {
+            qWarning() << "[NOTIFICATIONS] ERROR: sponsorManager is null!";
+            QMessageBox::warning(this, "Erreur", "Le gestionnaire de notifications n'est pas initialisé.");
+        }
     });
 
     // Barre d'outils notification en HAUT À DROITE
@@ -301,8 +361,8 @@ MainWindow::MainWindow(QWidget *parent)
     timer->start(60000); // 1 minute
 
     // Premier rafraîchissement
-    // Premier rafraîchissement
     int count = SponsorManager::getNombreNotifications();
+    qDebug() << "[NOTIFICATIONS] Initial notification count:" << count;
     if (count > 0) {
         badge->setText(count > 9 ? "9+" : QString::number(count));
         badge->setVisible(true);
@@ -311,7 +371,6 @@ MainWindow::MainWindow(QWidget *parent)
         badge->setVisible(false);
         btnNotification->setToolTip("Aucune notification");
     }
-    sponsorManager = new SponsorManager(this);
     // ========== INITIALISATION FINALE ==========
     // ========== INITIALISATION FINALE ==========
     //GestionCreateur *gestionCreateur = new GestionCreateur(ui, this);
@@ -340,6 +399,9 @@ MainWindow::MainWindow(QWidget *parent)
     // Initialize project statistics
     setupProjetStatisticsUI();
     displayProjetStatistics();
+
+    // Arduino serial bridge
+    setupArduinoConnection();
 
     ui->stackedWidget->setCurrentIndex(0);
 }
@@ -383,6 +445,64 @@ void MainWindow::showSponsor()
     updateNavigationStyle(4);  // Active le bouton Sponsor
 }
 
+void MainWindow::showSponsorDashboard()
+{
+    qDebug() << "[NAVIGATION] Showing sponsor dashboard...";
+
+    // 1. Go to sponsor page (index 4 = page_7) - IMMEDIATE (non-blocking)
+    ui->stackedWidget->setCurrentIndex(4);
+    qDebug() << "[NAVIGATION] StackedWidget index set to 4";
+
+    // 2. Update navigation style - IMMEDIATE
+    updateNavigationStyle(4);
+    qDebug() << "[NAVIGATION] Navigation style updated";
+
+    // 3. Go to the "Fonctionnalites" tab (tab_4) which contains the dashboard (groupBox_8) - IMMEDIATE
+    if (ui->tabWidget_7) {
+        qDebug() << "[NAVIGATION] tabWidget_7 found, searching for tab_4...";
+
+        // Find tab_4 by widget name
+        bool tabFound = false;
+        for (int i = 0; i < ui->tabWidget_7->count(); i++) {
+            QWidget* tabWidget = ui->tabWidget_7->widget(i);
+            if (tabWidget && tabWidget->objectName() == "tab_4") {
+                ui->tabWidget_7->setCurrentIndex(i);
+                tabFound = true;
+                qDebug() << "[NAVIGATION] tab_4 found at index" << i << "- switched to it";
+                break;
+            }
+        }
+
+        if (!tabFound) {
+            qWarning() << "[NAVIGATION] tab_4 not found! Available tabs:" << ui->tabWidget_7->count();
+            // Try to set to index 1 as fallback (usually the second tab)
+            if (ui->tabWidget_7->count() > 1) {
+                ui->tabWidget_7->setCurrentIndex(1);
+                qDebug() << "[NAVIGATION] Fallback: set to index 1";
+            }
+        }
+    } else {
+        qWarning() << "[NAVIGATION] tabWidget_7 is null!";
+    }
+
+    // Force immediate UI update to show page switch
+    QApplication::processEvents();
+    this->repaint();
+
+    // OPTIMIZATION: Defer dashboard refresh to avoid blocking UI
+    // This allows the page to show immediately, then load data in background
+    QTimer::singleShot(50, this, [this]() {
+        if (ui->groupBox_8) {
+            SponsorManager::afficherDashboardKPI(ui->groupBox_8);
+            qDebug() << "[NAVIGATION] Dashboard KPI refreshed (deferred)";
+        } else {
+            qWarning() << "[NAVIGATION] groupBox_8 not found!";
+        }
+    });
+
+    qDebug() << "[NAVIGATION] Sponsor dashboard display complete (page switched, data loading deferred)";
+}
+
 void MainWindow::showCreateur()
 {
     ui->stackedWidget->setCurrentIndex(5);
@@ -416,6 +536,51 @@ void MainWindow::setupButtonGroups()
 // ===================================================
 //                  CLIENTS
 // ===================================================
+void MainWindow::onIdReceived(QString id)
+{
+    QSqlQuery q;
+    q.prepare("SELECT NOM, PRENOM FROM EMPLOYE WHERE ID_EMPLOYE = :id");
+    q.bindValue(":id", id);
+
+    if (!q.exec()) {
+        QMessageBox::critical(this, "Database Error",
+                              "SQL Error:\n" + q.lastError().text());
+        Arduino->sendToArduino("DENIED");
+        return;
+    }
+
+    if (q.next()) {
+        QString nom = q.value(0).toString();
+        QString prenom = q.value(1).toString();
+
+        // Update date entrée
+        QSqlQuery upd;
+        upd.prepare("UPDATE EMPLOYE SET DATE_ENTREE = SYSDATE WHERE ID_EMPLOYE = :id");
+        upd.bindValue(":id", id);
+        upd.exec();
+
+        // Tell Arduino to open door + LED green
+        Arduino->sendToArduino("OK");
+
+        QMessageBox::information(
+            this,
+            "Access Granted",
+            QString("Employé %1 %2 a entré le %3")
+                .arg(nom)
+                .arg(prenom)
+                .arg(QDateTime::currentDateTime().toString("dd/MM/yyyy hh:mm"))
+            );
+    }
+    else {
+        Arduino->sendToArduino("DENIED");
+
+        QMessageBox::warning(
+            this,
+            "Access Denied",
+            "Employé introuvable. Accès refusé."
+            );
+    }
+}
 void MainWindow::setupTabClient()
 {
     ui->tab_Client->setColumnCount(8);
@@ -1240,6 +1405,7 @@ void MainWindow::populateProjetFormFromRow(int row)
     QTableWidgetItem* montantItem = ui->tableWidget_7->item(row, 4);
     QTableWidgetItem* paimentItem = ui->tableWidget_7->item(row, 5);
     QTableWidgetItem* matrielItem = ui->tableWidget_7->item(row, 6);
+    Q_UNUSED(matrielItem); // Mark as intentionally unused to avoid warning
 
     if (idItem) ui->lineEdit_31->setText(idItem->text());
     if (typeItem) {
@@ -1521,6 +1687,92 @@ void MainWindow::onFlashTimer()
     }
 }
 
+void MainWindow::setupArduinoConnection()
+{
+    if (m_arduino) {
+        m_arduino->deleteLater();
+    }
+
+    m_arduino = new ConnectionArduino(this);
+
+    // Connect to existing Arduino signals
+    connect(m_arduino, &ConnectionArduino::rawLineReceived, this, [](const QString &line) {
+        qDebug() << "[ARDUINO RAW]" << line;
+    });
+
+    connect(m_arduino, &ConnectionArduino::colorReceived, this, &MainWindow::onArduinoColorDetected);
+
+    // Connect to new color name signal
+    connect(m_arduino, &ConnectionArduino::colorNameReceived, this, &MainWindow::onArduinoColorNameDetected);
+
+    // Connect to equipment detection signal
+    connect(m_arduino, &ConnectionArduino::equipmentDetected, this, &MainWindow::onArduinoEquipmentDetected);
+
+    // Connect to PIR motion detection signals
+    connect(m_arduino, &ConnectionArduino::motionDetected, this, &MainWindow::onArduinoMotionDetected);
+    connect(m_arduino, &ConnectionArduino::motionCleared, this, &MainWindow::onArduinoMotionCleared);
+
+    connect(m_arduino, &ConnectionArduino::errorOccurred, this, &MainWindow::onArduinoError);
+
+    // Try COM10 first, then fallback to other available ports
+    QString preferredPort = QStringLiteral("COM10");
+    const qint32 baudRate = 9600;
+
+    const QStringList ports = ConnectionArduino::availablePorts();
+    qDebug() << "[ARDUINO] Available ports:" << ports;
+
+    QString portToUse = preferredPort;
+    bool portFound = false;
+
+    // Check if preferred port is available
+    if (ports.contains(preferredPort)) {
+        portFound = true;
+        qDebug() << "[ARDUINO] Preferred port" << preferredPort << "is available";
+    } else {
+        qWarning() << "[ARDUINO] Preferred port" << preferredPort << "not available";
+        // Try to find any available COM port
+        for (const QString &port : ports) {
+            if (port.startsWith("COM")) {
+                portToUse = port;
+                portFound = true;
+                qDebug() << "[ARDUINO] Using fallback port:" << portToUse;
+                break;
+            }
+        }
+    }
+
+    if (!portFound) {
+        qWarning() << "[ARDUINO] No COM ports available!";
+        QMessageBox::warning(nullptr, "Arduino", "Aucun port série disponible. Vérifiez la connexion Arduino.");
+        return;
+    }
+
+    // Try to open the port, with retry logic if port is busy
+    bool opened = false;
+    int retries = 3;
+    for (int i = 0; i < retries && !opened; i++) {
+        if (m_arduino->open(portToUse, baudRate)) {
+            qDebug() << "[ARDUINO] Connected on" << portToUse << "@" << baudRate;
+            opened = true;
+
+            // Setup LCD display after successful Arduino connection
+            setupLcdDisplay();
+        } else {
+            qWarning() << "[ARDUINO] Failed to open" << portToUse << "@" << baudRate << "- attempt" << (i+1) << "of" << retries;
+            if (i < retries - 1) {
+                // Wait a bit before retrying
+                QThread::msleep(500);
+            }
+        }
+    }
+
+    if (!opened) {
+        qWarning() << "[ARDUINO] Failed to open port after" << retries << "attempts";
+        QMessageBox::warning(nullptr, "Arduino",
+                             QString("Impossible d'ouvrir le port %1.\nVérifiez qu'il n'est pas utilisé par un autre programme.").arg(portToUse));
+    }
+}
+
 void MainWindow::setupProjetStatisticsUI()
 {
     // Setup statistics tables for types
@@ -1552,10 +1804,10 @@ void MainWindow::displayProjetStatistics()
     QVector<QPair<QString,int>> countsByType = Projet::CountsByType();
     QVector<QPair<QString,int>> countsByPaiment = Projet::CountsByPaiment();
     QVector<QPair<QString,double>> montantByPaiment = Projet::MontantByPaiment();
-    
+
     double totalMontant = Projet::TotalMontant();
     double averageMontant = Projet::AverageMontant();
-    
+
     int totalProjects = 0;
     for (const auto &p : countsByType) {
         totalProjects += p.second;
@@ -1581,7 +1833,7 @@ void MainWindow::displayProjetStatistics()
             QString type = countsByType[i].first.isEmpty() ? "Non spécifié" : countsByType[i].first;
             int count = countsByType[i].second;
             double percentage = totalProjects > 0 ? (double(count) / totalProjects) * 100 : 0;
-            
+
             ui->tableWidget_stats_type->setItem(i, 0, new QTableWidgetItem(type));
             ui->tableWidget_stats_type->setItem(i, 1, new QTableWidgetItem(QString::number(count)));
             ui->tableWidget_stats_type->setItem(i, 2, new QTableWidgetItem(QString("%1%").arg(QString::number(percentage, 'f', 1))));
@@ -1596,7 +1848,7 @@ void MainWindow::displayProjetStatistics()
             QString paiment = countsByPaiment[i].first.isEmpty() ? "Non spécifié" : countsByPaiment[i].first;
             int count = countsByPaiment[i].second;
             double percentage = totalProjects > 0 ? (double(count) / totalProjects) * 100 : 0;
-            
+
             // Find corresponding amount for this payment method
             double montant = 0;
             for (const auto &m : montantByPaiment) {
@@ -1605,7 +1857,7 @@ void MainWindow::displayProjetStatistics()
                     break;
                 }
             }
-            
+
             ui->tableWidget_stats_paiment->setItem(i, 0, new QTableWidgetItem(paiment));
             ui->tableWidget_stats_paiment->setItem(i, 1, new QTableWidgetItem(QString::number(count)));
             ui->tableWidget_stats_paiment->setItem(i, 2, new QTableWidgetItem(QString("%1 DT").arg(QString::number(montant, 'f', 2))));
@@ -1638,12 +1890,12 @@ void MainWindow::displayProjetPieCharts(const QVector<QPair<QString,int>>& count
     if (totalProjects > 0) {
         QPieSeries *typeSeries = new QPieSeries();
         QStringList colors = {"#3498DB", "#E74C3C", "#2ECC71", "#F39C12", "#9B59B6", "#1ABC9C"};
-        
+
         for (int i = 0; i < countsByType.size(); ++i) {
             QString label = countsByType[i].first.isEmpty() ? "Non spécifié" : countsByType[i].first;
             int count = countsByType[i].second;
             double percentage = (double(count) / totalProjects) * 100;
-            
+
             QPieSlice *slice = typeSeries->append(QString("%1 (%2)").arg(label).arg(QString::number(percentage, 'f', 1) + "%"), count);
             if (i < colors.size()) {
                 slice->setBrush(QBrush(QColor(colors[i])));
@@ -1668,12 +1920,12 @@ void MainWindow::displayProjetPieCharts(const QVector<QPair<QString,int>>& count
     if (totalMontant > 0) {
         QPieSeries *paimentSeries = new QPieSeries();
         QStringList paimentColors = {"#E74C3C", "#3498DB", "#2ECC71", "#F39C12", "#9B59B6", "#1ABC9C"};
-        
+
         for (int i = 0; i < montantByPaiment.size(); ++i) {
             QString label = montantByPaiment[i].first.isEmpty() ? "Non spécifié" : montantByPaiment[i].first;
             double montant = montantByPaiment[i].second;
             double percentage = (montant / totalMontant) * 100;
-            
+
             QPieSlice *slice = paimentSeries->append(QString("%1 (%2)").arg(label).arg(QString::number(percentage, 'f', 1) + "%"), montant);
             if (i < paimentColors.size()) {
                 slice->setBrush(QBrush(QColor(paimentColors[i])));
@@ -1753,34 +2005,21 @@ Staff MainWindow::readStaffForm() const
     QString nom = ui->lineEdit_14->text().trimmed();
     QString prenom = ui->lineEdit_20->text().trimmed();
     QString poste = ui->comboBox_6->currentText();
+    QString competence;
+    if (ui->radioButton->isChecked()) competence = "Débutant";
+    else if (ui->radioButton_2->isChecked()) competence = "Intermédiaire";
+    else if (ui->radioButton_3->isChecked()) competence = "Avancé";
+
     QString telephone = ui->lineEdit_19->text().trimmed();
 
-    QString competence;
-    if (ui->radioButton->isChecked()) {
-        competence = "Débutant";
-    } else if (ui->radioButton_2->isChecked()) {
-        competence = "Intermédiaire";
-    } else if (ui->radioButton_3->isChecked()) {
-        competence = "Avancé";
-    } else {
-        competence = "";
-    }
-
     QString email;
-    QString motDePasse;
-
-    QLineEdit* emailField = this->findChild<QLineEdit*>("staffEmailLineEdit");
-    if (emailField) {
+    if (auto emailField = this->findChild<QLineEdit*>("staffEmailLineEdit")) {
         email = emailField->text().trimmed();
-    } else {
-        email = nom.toLower() + "." + prenom.toLower() + "@company.com";
     }
 
-    QLineEdit* passwordField = this->findChild<QLineEdit*>("staffMotDePasseLineEdit");
-    if (passwordField) {
-        motDePasse = passwordField->text().trimmed();
-    } else {
-        motDePasse = "";
+    QString motDePasse;
+    if (auto passwordField = this->findChild<QLineEdit*>("staffMotDePasseLineEdit")) {
+        motDePasse = passwordField->text();
     }
 
     return Staff(id, nom, prenom, poste, competence, telephone, email, motDePasse);
@@ -3035,7 +3274,7 @@ Materiel MainWindow::readMaterielForm() const
         localisation = "salle podcast";
     }
 
-    return Materiel(id, nom, type, etat, localisation);
+    return Materiel(id, nom, type, etat, localisation, "", 0);
 }
 
 void MainWindow::clearMaterielForm()
@@ -3394,7 +3633,7 @@ void MainWindow::refreshMaterielGrid()
 
     if (ui->tableWidget_4->rowCount() > 0) {
         ui->tableWidget_4->selectRow(0);
-        afficherQRCodePourLigne(0);
+        //afficherQRCodePourLigne(0);
     }
 }
 
@@ -3469,7 +3708,7 @@ void MainWindow::on_toolButton_31_clicked()
             afficherStatistiquesMateriel();
         }
     } else {
-        if (m.modifier(m.getId(), m.getNom(), m.getType(), m.getEtat(), m.getLocalisation())) {
+        if (m.modifier(m.getId(), m.getNom(), m.getType(), m.getEtat(), m.getLocalisation(), m.getCouleur(), m.getQte())) {
             setMaterielFormMode(false);
             refreshMaterielGrid();
             afficherStatistiquesMateriel();
@@ -3940,6 +4179,8 @@ void MainWindow::on_RechercherSponsor_clicked()
 // ----------------- CLIC TABLEAU - COMME PROJET -----------------
 void MainWindow::on_tableWidget_2_cellClicked(int row, int column)
 {
+    Q_UNUSED(column); // Mark column parameter as intentionally unused
+
     // Lire directement depuis le tableau
     QTableWidgetItem *itemId = ui->tableWidget_2->item(row, 0);
     if (!itemId) return;
@@ -4112,3 +4353,288 @@ void MainWindow::on_toolButton_11_clicked()
 // =====================
 //  STYLISER LES FORMULAIRES SPÉCIFIQUES
 // =====================
+
+void MainWindow::onDetectMaterielButtonClicked()
+{
+    if (m_colorDetectionActive) {
+        QMessageBox::information(this, "Détection", "Détection déjà active. Veuillez passer une couleur.");
+        return;
+    }
+
+    m_colorDetectionActive = true;
+    qDebug() << "[DETECTION BUTTON CLICKED] Mode de détection activé!";
+    QMessageBox::information(this, "Détection Matériel",
+                             "Mode de détection activé!\n\nPassez le matériel devant le capteur.");
+}
+
+
+void MainWindow::handleSerial() {
+    qDebug() << "📥 handleSerial called";
+
+    serialData += arduino->readAll();
+
+    // Wait until we have a full line
+    if (!serialData.contains('\n'))
+        return;
+
+    QString line = QString(serialData).trimmed();
+    serialData.clear();
+
+    qDebug() << "📡 Arduino sent:" << line;
+
+    // Only process color if detection mode is active
+    if (!m_colorDetectionActive) {
+        qDebug() << "[COLOR IGNORED] Detection mode not active. Color:" << line;
+        return;
+    }
+
+    // Disable detection mode to prevent multiple triggers
+
+    qDebug() << "[DETECTION MODE ACTIVE] Processing color...";
+
+
+    // Map Arduino color to material type (using your old names)
+    QString materielType;
+
+    if (line.toUpper() == "BLUE") {
+        materielType = "Micros podcast";
+    } else if (line.toUpper() == "GREEN") {
+        materielType = "Caméra";
+    } else if (line.toUpper() == "RED") {
+        materielType = "Casques";
+    } else if (line.toUpper() == "YELLOW") {
+        materielType = "Webcam";
+    } else {
+        qDebug() << "⚠️ Unknown color received:" << line;
+        return;
+    }
+
+    // Check database for first material of this type
+    QSqlQuery query;
+    query.prepare("SELECT ID_MATERIEL, QTE FROM ABIR.MATERIEL WHERE TYPE = :type AND ROWNUM = 1");
+    query.addBindValue(materielType);
+
+    if (!query.exec() || !query.next()) {
+        qDebug() << "❌ No material of type" << materielType << "found in database.";
+        return;
+    }
+
+    int materielId = query.value(0).toInt();
+    int currentQte = query.value(1).toInt();
+
+    qDebug() << "[MATERIEL FOUND]" << materielType << "ID:" << materielId << "QTE:" << currentQte;
+
+    // Limit quantity (max 4)
+    const int MAX_QUANTITY = 4;
+    if (currentQte >= MAX_QUANTITY) {
+        qDebug() << "⚠️ Max quantity reached for" << materielType << ":" << currentQte;
+
+        return;
+    }
+
+    // Increment quantity
+    QSqlQuery updateQuery;
+    updateQuery.prepare("UPDATE ABIR.MATERIEL SET QTE = QTE + 1 WHERE ID_MATERIEL = :id");
+    updateQuery.addBindValue(materielId);
+
+    if (!updateQuery.exec()) {
+        qDebug() << "❌ Failed to update quantity:" << updateQuery.lastError().text();
+        return;
+    }
+
+    int newQte = currentQte + 1;
+    qDebug() << "✅ Quantity updated for" << materielType << "→" << newQte;
+
+    // Optionally send new quantity back to Arduino
+    QByteArray data = QByteArray::number(newQte) + "\n";
+    arduino->write(data);
+}
+
+// LCD Display setup method
+void MainWindow::setupLcdDisplay()
+{
+    if (m_lcdDisplay) {
+        m_lcdDisplay->deleteLater();
+    }
+
+    m_lcdDisplay = new LcdDisplay(this);
+
+    // Connect LCD signals
+    connect(m_lcdDisplay, &LcdDisplay::displayUpdated, this, [](const QString &message) {
+        qDebug() << "[LCD] Display updated:" << message;
+    });
+
+    connect(m_lcdDisplay, &LcdDisplay::errorOccurred, this, [](const QString &error) {
+        qWarning() << "[LCD] Error:" << error;
+    });
+
+    // Connect LCD to Arduino if available
+    if (m_arduino && m_arduino->isOpen()) {
+        if (m_lcdDisplay->connectToArduino(m_arduino)) {
+            qDebug() << "[LCD] Successfully connected to Arduino";
+        } else {
+            qWarning() << "[LCD] Failed to connect to Arduino";
+        }
+    }
+}
+
+// Arduino color detection slot (RGB values)
+void MainWindow::onArduinoColorDetected(int red, int green, int blue)
+{
+    qDebug() << "[ARDUINO] Color RGB detected:" << red << green << blue;
+
+    // You can add additional processing here if needed
+    // The color name detection is handled by onArduinoColorNameDetected
+}
+
+// Arduino color name detection slot
+void MainWindow::onArduinoColorNameDetected(const QString &colorName)
+{
+    qDebug() << "[ARDUINO] Color name detected:" << colorName;
+
+    // Update UI to show detected color
+    // You can add a status label or notification here
+
+    // The equipment lookup and LCD display is handled automatically by the Arduino connection
+}
+
+// Arduino equipment detection slot
+void MainWindow::onArduinoEquipmentDetected(const QString &equipmentName, const QString &color)
+{
+    qDebug() << "[ARDUINO] Equipment detected:" << equipmentName << "with color:" << color;
+
+    // Update UI to show detected equipment
+    // You could highlight the equipment in the materiel table
+    // or show a notification to the user
+
+    // Show a message box with the detected equipment
+    QMessageBox::information(this, "Équipement Détecté",
+                             QString("Équipement: %1\nCouleur: %2").arg(equipmentName, color));
+
+    // Optionally refresh the materiel table to highlight the found equipment
+    // You could also filter the table to show only this equipment
+    // Refresh materiel display if needed
+    // refreshMaterielGrid(); // Uncomment when this method is available
+}
+
+// Arduino PIR motion detection slot
+void MainWindow::onArduinoMotionDetected()
+{
+    // Prevent multiple detections - process only once
+    if (m_motionDetectionProcessed) {
+        qDebug() << "[ARDUINO] Motion already processed, ignoring...";
+        return;
+    }
+
+    qDebug() << "[ARDUINO] Motion detected - CHECK_DB received!";
+    m_motionDetectionProcessed = true;  // Mark as processed
+
+    // Check if user is already on sponsor page (index 4)
+    bool isOnSponsorPage = (ui->stackedWidget->currentIndex() == 4);
+    qDebug() << "[ARDUINO] Current page index:" << ui->stackedWidget->currentIndex() << "Is on sponsor page:" << isOnSponsorPage;
+
+    // Only redirect if NOT already on sponsor page
+    if (!isOnSponsorPage) {
+        qDebug() << "[ARDUINO] User not on sponsor page - redirecting...";
+
+        // OPTIMIZATION: Switch page immediately (non-blocking)
+        ui->stackedWidget->setCurrentIndex(4);
+        updateNavigationStyle(4);
+
+        // Find and switch to tab_4 (Fonctionnalites tab)
+        if (ui->tabWidget_7) {
+            for (int i = 0; i < ui->tabWidget_7->count(); i++) {
+                QWidget* tabWidget = ui->tabWidget_7->widget(i);
+                if (tabWidget && tabWidget->objectName() == "tab_4") {
+                    ui->tabWidget_7->setCurrentIndex(i);
+                    break;
+                }
+            }
+        }
+
+        // Force immediate UI update
+        QApplication::processEvents();
+
+        // OPTIMIZATION: Defer dashboard refresh to avoid blocking UI
+        // This allows the page to show immediately, then load data in background
+        QTimer::singleShot(100, this, [this]() {
+            if (ui->groupBox_8) {
+                SponsorManager::afficherDashboardKPI(ui->groupBox_8);
+                qDebug() << "[ARDUINO] Dashboard KPI refreshed (deferred)";
+            }
+        });
+    } else {
+        qDebug() << "[ARDUINO] User already on sponsor page - no redirection needed";
+    }
+
+    // OPTIMIZATION: Defer beep sequence to avoid blocking UI
+    // Get beep sequence and send asynchronously
+    QTimer::singleShot(200, this, [this]() {
+        QList<int> beepSequence;
+
+        try {
+            beepSequence = SponsorManager::getBeepSequenceForNotifications();
+            qDebug() << "[ARDUINO] Beep sequence from notifications:" << beepSequence;
+        } catch (...) {
+            qWarning() << "[ARDUINO] Error getting beep sequence";
+        }
+
+        // Send beep sequence to Arduino asynchronously with delays
+        if (m_arduino && m_arduino->isOpen() && !beepSequence.isEmpty()) {
+            qDebug() << "[ARDUINO] Sending" << beepSequence.size() << "notification beeps to Arduino...";
+
+            // Send first notification immediately
+            int firstBeeps = beepSequence[0];
+            QString alertMessage = QString("ALERT_COUNT:%1\n").arg(firstBeeps);
+            m_arduino->sendCommand(alertMessage.toUtf8());
+            qDebug() << "[ARDUINO] Sent notification 1 of" << beepSequence.size() << "->" << firstBeeps << "beeps";
+
+            // Send remaining notifications with proper delays (non-blocking)
+            // Each notification: beeps take ~400ms per beep (200ms on + 200ms off)
+            // Max 4 beeps = 1.6s, then Arduino waits 5s = ~6.5s total per notification
+            // We'll use 6500ms delay between notifications to ensure Arduino finishes previous one
+            int delayBetweenNotifications = 6500; // 6.5 seconds (beeps + 5s pause)
+            int cumulativeDelay = 0;
+
+            for (int i = 1; i < beepSequence.size(); i++) {
+                int beeps = beepSequence[i];
+                cumulativeDelay += delayBetweenNotifications;
+
+                QTimer::singleShot(cumulativeDelay, this, [this, beeps, i, beepSequence]() {
+                    QString alertMessage = QString("ALERT_COUNT:%1\n").arg(beeps);
+                    m_arduino->sendCommand(alertMessage.toUtf8());
+                    qDebug() << "[ARDUINO] Sent notification" << (i+1) << "of" << beepSequence.size() << "->" << beeps << "beeps";
+                });
+            }
+        } else {
+            if (!m_arduino || !m_arduino->isOpen()) {
+                qWarning() << "[ARDUINO] Arduino not connected, cannot send beep sequence";
+            }
+            if (beepSequence.isEmpty()) {
+                qDebug() << "[ARDUINO] No notifications found, no beeps to send";
+            }
+        }
+
+        qDebug() << "[ARDUINO] Motion detection handling complete. Beep sequence:" << beepSequence << "(" << beepSequence.size() << "notifications)";
+    });
+}
+
+// Arduino PIR motion cleared slot
+void MainWindow::onArduinoMotionCleared()
+{
+    qDebug() << "[ARDUINO] Motion cleared - resetting detection flag";
+    // Reset the flag to allow next detection
+    m_motionDetectionProcessed = false;
+}
+
+// Arduino error handling slot
+void MainWindow::onArduinoError(const QString &message)
+{
+    qWarning() << "[ARDUINO] Error occurred:" << message;
+
+    // Show error to user
+    QMessageBox::warning(this, "Erreur Arduino",
+                         QString("Erreur de communication Arduino:\n%1").arg(message));
+}
+
+

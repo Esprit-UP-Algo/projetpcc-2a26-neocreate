@@ -39,16 +39,22 @@
 #include <QApplication>
 #include <QRegularExpression>
 #include "connection.h"
+#include "connection_arduino.h"
+#include "color_sensor_handler.h"
+#include "lcd_display.h"
 #include <QtCharts/QChartView>
 #include <QtCharts/QChart>
 #include <QtCharts/QBarSet>
 #include <QtCharts/QBarSeries>
 #include <QtCharts/QBarCategoryAxis>
 #include <QtCharts/QValueAxis>
+#include <QSerialPort>
+#include <arduino.h>
+
 
 class PieChartWidget : public QWidget
 {
-    Q_OBJECT
+    // Q_OBJECT removed - not needed since no signals/slots are used
 
 public:
     explicit PieChartWidget(QWidget *parent = nullptr);
@@ -81,6 +87,7 @@ private slots:
     void showMateriel();
     void showProjet();
     void showSponsor();
+    void showSponsorDashboard();  // Show sponsor dashboard/statistics tab
     void showCreateur();
     void updateNavigationStyle(int activeIndex);
 
@@ -128,6 +135,13 @@ private slots:
     void on_comboBox_4_currentTextChanged(const QString &text); // Trier matériel
     void on_toolButton_68_clicked();
     void onTableMaterielSelectionChanged();
+    void onDetectMaterielButtonClicked();  // Start single color detection for materiel
+    void onArduinoColorDetected(int red, int green, int blue);  // Handle color sensor detection
+    void onArduinoColorNameDetected(const QString &colorName);  // Handle color name detection
+    void onArduinoEquipmentDetected(const QString &equipmentName, const QString &color); // Handle equipment detection
+    void onArduinoMotionDetected();  // Handle PIR motion detection
+    void onArduinoMotionCleared();   // Handle PIR motion cleared
+    void onArduinoError(const QString &message);  // Handle Arduino errors
 
     // CRUD SPONSOR (boutons de l'UI)
     void on_AjouterSponsor_clicked();
@@ -147,9 +161,13 @@ private slots:
 
     void on_toolButton_11_clicked();
 
+
+    void handleSerial();
+
 private:
     Ui::MainWindow *ui;
     Staff *staff;
+    SponsorManager *sponsorManager;  // Moved here to match initialization order
     QString currentSponsorId;
     // ---- CLIENT helpers ----
     void setupTabClient();                 // prépare QTableWidget
@@ -176,6 +194,8 @@ private:
     void displayProjetPieCharts(const QVector<QPair<QString,int>>& countsByType,
                                const QVector<QPair<QString,double>>& montantByPaiment,
                                int totalProjects, double totalMontant);
+    void setupArduinoConnection();          // open COM port and wire debug signals
+    void setupLcdDisplay();                 // setup LCD display connection
 
     // ---- STAFF helpers ----
     void setupTabStaff();                  // prépare QTableWidget pour staff
@@ -216,6 +236,13 @@ private:
     void afficherErreurQR(QLabel *qrLabel, QVBoxLayout *layout, const QString &message);
     void afficherDonneesQR(QVBoxLayout *layout, const QString &data);
     bool m_blockQRRefresh = false;
+    ArduinoManager *Arduino;
+    void onIdReceived(QString id);
+
+
+
+    QSerialPort *arduino;
+    QByteArray serialData;
 private:
     // ... tes autres fonctions ...
 
@@ -244,7 +271,7 @@ private:
     bool m_projetEditMode  = false;
     bool m_staffEditMode   = false;
     bool m_materielEditMode = false;
-    SponsorManager *sponsorManager;
+    bool m_colorDetectionActive = false;  // True when waiting for single color detection
     QString m_sponsorRenouvele;
 
 
@@ -258,6 +285,10 @@ private:
     QWidget* m_projetChartView2 = nullptr; // chart for montant by payment
     QTimer* m_flashTimer = nullptr;
     QVector<int> m_flashingRows; // rows that should flash (one-day remaining)
+
+    ConnectionArduino *m_arduino = nullptr;
+    bool m_motionDetectionProcessed = false;  // Flag to prevent multiple detections
+    LcdDisplay *m_lcdDisplay = nullptr;
 
     // AI Predictor components
     QProcess* m_aiProcess = nullptr;

@@ -94,7 +94,9 @@ DROP TABLE "ABIR"."SPONSOR" cascade constraints;
 	"TYPE" VARCHAR2(50 BYTE), 
 	"ETAT" VARCHAR2(50 BYTE), 
 	"LOCALISATION" VARCHAR2(100 BYTE), 
-	"ID_PROJET" NUMBER
+	"ID_PROJET" NUMBER, 
+	"QTE" NUMBER, 
+	"COULEUR" VARCHAR2(20 BYTE)
    ) SEGMENT CREATION IMMEDIATE 
   PCTFREE 10 PCTUSED 40 INITRANS 1 MAXTRANS 255 NOCOMPRESS LOGGING
   STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
@@ -151,10 +153,10 @@ REM INSERTING into ABIR.FINANCER
 SET DEFINE OFF;
 REM INSERTING into ABIR.MATERIEL
 SET DEFINE OFF;
-Insert into ABIR.MATERIEL (ID_MATERIEL,NOM,TYPE,ETAT,LOCALISATION,ID_PROJET) values (111,'aaa','Video','en panne','studio tournage',null);
-Insert into ABIR.MATERIEL (ID_MATERIEL,NOM,TYPE,ETAT,LOCALISATION,ID_PROJET) values (222,'aazf','Video','fonctionnel','studio tournage',null);
-Insert into ABIR.MATERIEL (ID_MATERIEL,NOM,TYPE,ETAT,LOCALISATION,ID_PROJET) values (333,'eef','Audio','hors service','salle montage',null);
-Insert into ABIR.MATERIEL (ID_MATERIEL,NOM,TYPE,ETAT,LOCALISATION,ID_PROJET) values (444,'erfe','Matériel Live','en maintenance','salle podcast',null);
+Insert into ABIR.MATERIEL (ID_MATERIEL,NOM,TYPE,ETAT,LOCALISATION,ID_PROJET,QTE,COULEUR) values (111,'Casques Audio Pro','Casques','fonctionnel','studio tournage',null,5,'red');
+Insert into ABIR.MATERIEL (ID_MATERIEL,NOM,TYPE,ETAT,LOCALISATION,ID_PROJET,QTE,COULEUR) values (222,'Caméra HD 4K','Caméra','fonctionnel','studio tournage',null,3,'green');
+Insert into ABIR.MATERIEL (ID_MATERIEL,NOM,TYPE,ETAT,LOCALISATION,ID_PROJET,QTE,COULEUR) values (333,'Micros Podcast Studio','Micros podcast','fonctionnel','salle montage',null,8,'blue');
+Insert into ABIR.MATERIEL (ID_MATERIEL,NOM,TYPE,ETAT,LOCALISATION,ID_PROJET,QTE,COULEUR) values (444,'Webcam Full HD','Webcam','en maintenance','salle podcast',null,6,'yellow');
 REM INSERTING into ABIR.PROJET
 SET DEFINE OFF;
 Insert into ABIR.PROJET (ID_PROJET,TYPE,DATE_D,DATE_F,ID_CLIENT,PAIMENT,MONTANT) values (111,'podcast',to_date('01-SEP-00','DD-MON-RR'),to_date('01-AUG-04','DD-MON-RR'),null,'virement ',28888);
