@@ -1,4 +1,4 @@
-QT       += core gui sql printsupport
+QT       += core gui sql printsupport serialport
 QT += charts
 QT += core gui widgets network sql
 QT += core gui sql network
@@ -20,6 +20,7 @@ CONFIG += c++17
 
 SOURCES += \
     appdesign.cpp \
+    arduino.cpp \
     client.cpp \
     connection.cpp \
     gestioncreateur.cpp \
@@ -36,6 +37,7 @@ SOURCES += \
 
 HEADERS += \
     appdesign.h \
+    arduino.h \
     client.h \
     connection.h \
     Login.h\

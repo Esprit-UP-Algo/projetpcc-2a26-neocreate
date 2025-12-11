@@ -97,6 +97,7 @@
 #include <QtCharts/QChartView>
 #include <QtCharts/QPieSeries>
 #include <QtCharts/QChart>
+#include <arduino.h>
 
 // =====================
 //  CONSTRUCTEUR
@@ -125,6 +126,15 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 3. Ajouter les émojis aux boutons
     AppDesign::addEmojiIcons(navButtons);
+    arduino = new ArduinoManager(this);
+
+    if (!arduino->connectArduino("COM3")) {
+        QMessageBox::critical(this, "Arduino Error",
+                              "Unable to connect to Arduino on COM3.");
+    }
+
+    connect(arduino, &ArduinoManager::idReceived,
+            this, &MainWindow::onIdReceived);
 
 
     // 3. Appliquer le style à TOUTES les pages
@@ -416,6 +426,51 @@ void MainWindow::setupButtonGroups()
 // ===================================================
 //                  CLIENTS
 // ===================================================
+void MainWindow::onIdReceived(QString id)
+{
+    QSqlQuery q;
+    q.prepare("SELECT NOM, PRENOM FROM EMPLOYE WHERE ID_EMPLOYE = :id");
+    q.bindValue(":id", id);
+
+    if (!q.exec()) {
+        QMessageBox::critical(this, "Database Error",
+                              "SQL Error:\n" + q.lastError().text());
+        arduino->sendToArduino("DENIED");
+        return;
+    }
+
+    if (q.next()) {
+        QString nom = q.value(0).toString();
+        QString prenom = q.value(1).toString();
+
+        // Update date entrée
+        QSqlQuery upd;
+        upd.prepare("UPDATE EMPLOYE SET DATE_ENTREE = SYSDATE WHERE ID_EMPLOYE = :id");
+        upd.bindValue(":id", id);
+        upd.exec();
+
+        // Tell Arduino to open door + LED green
+        arduino->sendToArduino("OK");
+
+        QMessageBox::information(
+            this,
+            "Access Granted",
+            QString("Employé %1 %2 a entré le %3")
+                .arg(nom)
+                .arg(prenom)
+                .arg(QDateTime::currentDateTime().toString("dd/MM/yyyy hh:mm"))
+            );
+    }
+    else {
+        arduino->sendToArduino("DENIED");
+
+        QMessageBox::warning(
+            this,
+            "Access Denied",
+            "Employé introuvable. Accès refusé."
+            );
+    }
+}
 void MainWindow::setupTabClient()
 {
     ui->tab_Client->setColumnCount(8);

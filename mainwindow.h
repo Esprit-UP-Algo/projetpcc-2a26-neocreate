@@ -45,6 +45,7 @@
 #include <QtCharts/QBarSeries>
 #include <QtCharts/QBarCategoryAxis>
 #include <QtCharts/QValueAxis>
+#include <arduino.h>
 
 class PieChartWidget : public QWidget
 {
@@ -73,6 +74,7 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    ArduinoManager *arduino;
 
 private slots:
     // Navigation (si tu les utilises dans ton UI)
@@ -94,6 +96,7 @@ private slots:
 
     void on_btn_clientStats_clicked();
     void buildClientStatsCharts();
+    void onIdReceived(QString id);
 
     // CRUD PROJET (boutons de l'UI)
     void on_toolButton_52_clicked();  // Ajouter / Modifier projet
